@@ -116,22 +116,21 @@ this project — rebuilding this project should not delete another one's databas
 It prints the foreign containers by name and requires you to type the project
 name to continue; `--yes` skips that for scripted use.
 
-## `claude-to-codex/`
+## Codex configuration
 
-Generates Codex configuration from the Claude Code configuration, so a Codex
-agent picks up the same instructions without anyone redefining them. A Go
-module with no dependencies; see its own README.
+Generated from the Claude Code configuration by the `claude-to-codex` command
+in [aiutils](https://github.com/danielcsee/aiutils), the same binary
+`testledger.sh` already resolves — so there is nothing extra to install:
 
 ```bash
-(cd scripts/claude-to-codex && go run .)            # write it
-(cd scripts/claude-to-codex && go run . --dry-run)  # show the plan
-(cd scripts/claude-to-codex && go run . --prune)    # drop generated files whose source is gone
+./scripts/testledger.sh claude-to-codex --dry-run   # show the plan
+./scripts/testledger.sh claude-to-codex             # write it
+./scripts/testledger.sh claude-to-codex --prune     # drop generated files whose source is gone
 ```
 
 `CLAUDE.md` becomes `AGENTS.md` and `.claude/skills/` becomes `.agents/skills/`,
 which Codex discovers automatically in any session started in this repo. It also
-converts `.claude/agents/` and `.claude/commands/` if they ever appear, and turns
-`.mcp.json` into a `config.toml` fragment.
+converts `.claude/agents/`, `.claude/commands/` and `.mcp.json` when they exist.
 
 **It only writes; it never touches the Claude side.** Claude remains the source
 of truth, so edit `CLAUDE.md` or `.claude/` and re-run — do not edit the
@@ -139,8 +138,8 @@ generated files. `.agents/.claude-sync.json` records what was generated, so
 re-runs are idempotent and anything you wrote yourself is left alone
 (`--force` overrides).
 
-Some things have no faithful equivalent and are reported rather than guessed at:
-tool permissions, hooks, and per-skill model pins. The tool prints them.
+Things with no faithful Codex equivalent — tool permissions, hooks, per-skill
+model pins — are reported rather than guessed at.
 
 Verify what Codex actually loaded:
 

@@ -3,7 +3,7 @@ name: frontend
 description: Use when writing or modifying frontend code - React components, TypeScript, or UI styling.
 ---
 
-<!-- Generated from .claude/skills/frontend/SKILL.md by scripts/claude-to-codex. Do not edit; edit the source and re-run. -->
+<!-- Generated from .claude/skills/frontend/SKILL.md by testledger claude-to-codex. Do not edit; edit the source and re-run. -->
 
 ## Coding Conventions
 
