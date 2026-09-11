@@ -1,11 +1,11 @@
 # .agents
 
 Codex configuration, generated from the Claude Code configuration by
-`scripts/claude-to-codex`. **Do not edit these files by hand** -- edit `CLAUDE.md` or
+`testledger claude-to-codex`. **Do not edit these files by hand** -- edit `CLAUDE.md` or
 `.claude/` and re-run the generator:
 
 ```bash
-(cd scripts/claude-to-codex && go run .)
+testledger claude-to-codex
 ```
 
 Codex discovers `.agents/skills/*/SKILL.md` automatically for any session
