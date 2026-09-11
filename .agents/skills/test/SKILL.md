@@ -3,7 +3,7 @@ name: test
 description: Use for running unit tests and checking unit test coverage.
 ---
 
-<!-- Generated from .claude/skills/test/SKILL.md by scripts/claude-to-codex.py. Do not edit; edit the source and re-run. -->
+<!-- Generated from .claude/skills/test/SKILL.md by scripts/claude-to-codex. Do not edit; edit the source and re-run. -->
 
 ## Using Testledger
 
@@ -60,7 +60,8 @@ Using testledger, do these steps in order:
 (1) Check code coverage:
   - Identify the list of uncovered functions NOT marked as purposefully skipped.
   - From those, identify the functions most in need of testing.
-  - Ssk for human approval to add tests for those functions.
+  - Ask for human approval to add tests for those functions.
+  - 100% coverage is not required. Prioritize testing pure-logic functions along critical data paths which do not require complex mocking.
 (2) Add tests:
   - Add tests for all functions approved in step 1.
   - Record your additions in testledger

@@ -1,4 +1,4 @@
-<!-- BEGIN generated from CLAUDE.md by scripts/claude-to-codex.py -- edits inside this block are overwritten -->
+<!-- BEGIN generated from CLAUDE.md by scripts/claude-to-codex -- edits inside this block are overwritten -->
 
 This project implements a tool for searching, downloading, and analyzing scientific medical papers.
 

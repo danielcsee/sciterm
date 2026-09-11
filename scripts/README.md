@@ -116,15 +116,16 @@ this project — rebuilding this project should not delete another one's databas
 It prints the foreign containers by name and requires you to type the project
 name to continue; `--yes` skips that for scripted use.
 
-## `claude-to-codex.py`
+## `claude-to-codex/`
 
 Generates Codex configuration from the Claude Code configuration, so a Codex
-agent picks up the same instructions without anyone redefining them.
+agent picks up the same instructions without anyone redefining them. A Go
+module with no dependencies; see its own README.
 
 ```bash
-./scripts/claude-to-codex.py --dry-run   # show the plan
-./scripts/claude-to-codex.py             # write it
-./scripts/claude-to-codex.py --prune     # also delete generated files whose source is gone
+(cd scripts/claude-to-codex && go run .)            # write it
+(cd scripts/claude-to-codex && go run . --dry-run)  # show the plan
+(cd scripts/claude-to-codex && go run . --prune)    # drop generated files whose source is gone
 ```
 
 `CLAUDE.md` becomes `AGENTS.md` and `.claude/skills/` becomes `.agents/skills/`,
@@ -132,47 +133,19 @@ which Codex discovers automatically in any session started in this repo. It also
 converts `.claude/agents/` and `.claude/commands/` if they ever appear, and turns
 `.mcp.json` into a `config.toml` fragment.
 
-**It only writes; it never touches the Claude side.** Claude remains the source of
-truth, so edit `CLAUDE.md` or `.claude/` and re-run — do not edit the generated
-files. `.agents/.claude-sync.json` records what was generated, so re-runs are
-idempotent and anything you wrote yourself is left alone (`--force` overrides).
+**It only writes; it never touches the Claude side.** Claude remains the source
+of truth, so edit `CLAUDE.md` or `.claude/` and re-run — do not edit the
+generated files. `.agents/.claude-sync.json` records what was generated, so
+re-runs are idempotent and anything you wrote yourself is left alone
+(`--force` overrides).
 
 Some things have no faithful equivalent and are reported rather than guessed at:
-tool permissions, hooks, and per-skill model pins. The script prints them.
+tool permissions, hooks, and per-skill model pins. The tool prints them.
 
 Verify what Codex actually loaded:
 
 ```bash
 codex debug prompt-input | grep -i skill
-```
-
-## `testledger.sh`
-
-Runs [Testledger](https://github.com/danielcsee/testledger), the function-level
-test inventory and runner. It used to live in `testledger/` in this repo; it is
-now its own project, pinned here rather than vendored.
-
-```bash
-./scripts/testledger.sh check              # what needs tests?
-./scripts/testledger.sh test               # run them
-./scripts/testledger.sh --update-lock v0.1.0
-```
-
-Every argument is forwarded. Configuration is `testledger.toml` in the project
-root, and the ledger database and artifacts stay in `.testledger/`.
-
-`testledger.lock` names one release and the SHA-256 of each platform's binary.
-The script verifies the cached binary against it **on every run**, not just on
-download, so a corrupted cache or a retagged release stops the run instead of
-executing an unknown binary. There is no override: changing the pin is a
-reviewable diff. The repository is private, so downloading needs `gh` (which
-already holds your credentials) or a `GITHUB_TOKEN`.
-
-Set `TESTLEDGER_BIN` to run a local build instead — useful when working on
-Testledger itself:
-
-```bash
-TESTLEDGER_BIN=~/coding/testledger/bin/testledger ./scripts/testledger.sh check
 ```
 
 ## Ports
