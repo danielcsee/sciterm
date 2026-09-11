@@ -37,3 +37,7 @@ scripts/aws_config.sh
 # The tool itself lives in github.com/danielcsee/testledger; testledger.lock
 # is committed, the binary it names is not.
 .testledger/
+
+# Local builds of the Codex config generator
+scripts/claude-to-codex/bin/
+scripts/claude-to-codex/claude-to-codex

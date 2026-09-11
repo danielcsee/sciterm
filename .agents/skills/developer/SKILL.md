@@ -3,7 +3,7 @@ name: developer
 description: Use whenever writing, modifying, or refactoring code in this project - backend or frontend. Covers directory layout, the per-directory README requirement, and the feature-branch git workflow.
 ---
 
-<!-- Generated from .claude/skills/developer/SKILL.md by scripts/claude-to-codex.py. Do not edit; edit the source and re-run. -->
+<!-- Generated from .claude/skills/developer/SKILL.md by scripts/claude-to-codex. Do not edit; edit the source and re-run. -->
 
 Identify the language you're using and the area you're working on (backend, frontend, or both), and use the skills which best correspond to that. When writing backend code (Python/Celery, PostgreSQL, or Neo4j), use the `backend` skill. When writing frontend code (React/Typescript), use the `frontend` skill.
 
@@ -14,6 +14,10 @@ Do not use deprecated functions, libraries, or components. If you detect that li
 ## Coding Conventions
 
 Put major features into their own directories, and export a public interface when necessary.
+
+Avoid declaring functions inside of other functions. Prefer defining separate helpers instead.
+
+Separate 'interface' code from 'implementation', and define helper functions for implementation. A function with three distinct logical steps that each occupy ~10 lines of code should NOT implement each step inline. instead, it should call three internal helper functions as its implementation.
 
 Before doing work on a file, check the directory for a README and read that first.
 

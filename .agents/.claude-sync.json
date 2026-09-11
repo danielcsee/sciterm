@@ -1,12 +1,13 @@
 {
-  "generated_by": "scripts/claude-to-codex.py",
+  "generated_by": "scripts/claude-to-codex",
   "note": "Tracks files generated from the Claude Code config. Do not edit.",
   "files": {
-    ".agents/README.md": "e808fc8992dca353a5ab7ba132f910afeaba72f4868ca44df279cdf47ac91ed3",
-    ".agents/skills/backend/SKILL.md": "3482a7da571e285c87e93fb0a44acd340bc5adac55fd7e3630a9774acb583ef6",
-    ".agents/skills/developer/SKILL.md": "94db6cd53fff9af368ba111b876414437a1048f172c213588bbfae6887220e3e",
-    ".agents/skills/frontend/SKILL.md": "28f7fd8bb88e4b731f03fc7a18cbad4bb98e4944a0f48e052f8c33223d95ac5d",
-    ".agents/skills/test/SKILL.md": "2b4786dbbf5058830b8dc7b8e9e6f4a46da1c42581aa06ce5779b0e78fefbf36",
-    "AGENTS.md": "e493acbd693f3f074272850520288ca5381d4aac05f4aa199cf8c9160ab40412"
+    ".agents/README.md": "f3ba19eb76691220d725022d9fd90944196818a73748987cc3eff1ef4e5f855d",
+    ".agents/skills/backend/SKILL.md": "ce5d4656b4dd6df08e8e8307772324ef968fce5a770c619dd67a6c6e0cb182f1",
+    ".agents/skills/ci/SKILL.md": "fbe62b912855ed48d62b355c544f0913fe96a62dc1a074814ab4686033295a21",
+    ".agents/skills/developer/SKILL.md": "aee02d28b386442d6021f4e5b385ead4038b1dc94b6a0b920c430280acb9382a",
+    ".agents/skills/frontend/SKILL.md": "68315ba25687566ad5d98c753eabfb6024a6af89f0f16de61b45a5fc0d815eb4",
+    ".agents/skills/test/SKILL.md": "4aaeb905bfcb86794932b786c3bd09bbdd9d6da658385d2657e0dc0968faf5a8",
+    "AGENTS.md": "43e85f0552e61067b6c4db451d78b2d5fa0b061dab35828ae12310138df1be7f"
   }
 }
