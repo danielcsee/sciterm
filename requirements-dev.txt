@@ -1,0 +1,7 @@
+# Test-only dependencies. The app's runtime dependencies are in
+# api/requirements.txt; these are needed to run the suite in tests/ and are
+# what Testledger's pytest runner and coverage attribution rely on.
+#
+#   .venv/bin/python -m pip install -r requirements-dev.txt
+pytest>=8,<9
+coverage>=7,<8

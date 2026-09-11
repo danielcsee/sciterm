@@ -146,6 +146,35 @@ Verify what Codex actually loaded:
 codex debug prompt-input | grep -i skill
 ```
 
+## `testledger.sh`
+
+Runs [Testledger](https://github.com/danielcsee/testledger), the function-level
+test inventory and runner. It used to live in `testledger/` in this repo; it is
+now its own project, pinned here rather than vendored.
+
+```bash
+./scripts/testledger.sh check              # what needs tests?
+./scripts/testledger.sh test               # run them
+./scripts/testledger.sh --update-lock v0.1.0
+```
+
+Every argument is forwarded. Configuration is `testledger.toml` in the project
+root, and the ledger database and artifacts stay in `.testledger/`.
+
+`testledger.lock` names one release and the SHA-256 of each platform's binary.
+The script verifies the cached binary against it **on every run**, not just on
+download, so a corrupted cache or a retagged release stops the run instead of
+executing an unknown binary. There is no override: changing the pin is a
+reviewable diff. The repository is private, so downloading needs `gh` (which
+already holds your credentials) or a `GITHUB_TOKEN`.
+
+Set `TESTLEDGER_BIN` to run a local build instead — useful when working on
+Testledger itself:
+
+```bash
+TESTLEDGER_BIN=~/coding/testledger/bin/testledger ./scripts/testledger.sh check
+```
+
 ## Ports
 
 Read from `.env`, with defaults: API `8000`, UI `5173`, Postgres `5432`, Neo4j

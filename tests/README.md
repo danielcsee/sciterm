@@ -26,11 +26,12 @@ from the checkout rather than installed.
 
 ## Dependencies
 
-`pytest` and `coverage` (see `testledger/python-requirements.txt`), installed
-into `.venv`. Tests are discovered and run through Testledger:
+`pytest` and `coverage`, from `requirements-dev.txt`, installed into `.venv`.
+Tests are discovered and run through Testledger, which is an external tool
+pinned by `testledger.lock` and fetched on first use:
 
 ```sh
-testledger/bin/testledger --config testledger/testledger.toml test --json
+scripts/testledger.sh test --json
 ```
 
 Running `pytest` directly works but records nothing in the ledger.
