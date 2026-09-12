@@ -1,4 +1,4 @@
-<!-- BEGIN generated from CLAUDE.md by testledger claude-to-codex -- edits inside this block are overwritten -->
+<!-- BEGIN generated from CLAUDE.md by aiutils claude-to-codex -- edits inside this block are overwritten -->
 
 This project implements a tool for searching, downloading, and analyzing scientific medical papers.
 

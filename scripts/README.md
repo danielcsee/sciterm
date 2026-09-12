@@ -116,16 +116,47 @@ this project — rebuilding this project should not delete another one's databas
 It prints the foreign containers by name and requires you to type the project
 name to continue; `--yes` skips that for scripted use.
 
+## `aiutils.sh`
+
+Runs [aiutils](https://github.com/danielcsee/aiutils) — the function-level test
+inventory and runner, and the Codex config generator. Every argument is
+forwarded:
+
+```bash
+./scripts/aiutils.sh check              # what needs tests?
+./scripts/aiutils.sh test               # run them
+./scripts/aiutils.sh claude-to-codex    # regenerate AGENTS.md and .agents/
+```
+
+**It always runs the latest release.** On every invocation it asks GitHub for
+the newest tag and downloads it only when the cached binary is a different
+version, so staying current costs one API call rather than an 8 MB download per
+command. The cache lives in `.aiutils/bin/` and keeps exactly one version;
+older ones are deleted.
+
+The repository is private, so downloads go through `gh`, which already holds
+your credentials — `gh auth login` once and the script needs nothing else.
+
+Set `AIUTILS_BIN` to run a local build instead, which is what you want when
+working on aiutils itself:
+
+```bash
+AIUTILS_BIN=~/coding/aiutils/bin/aiutils ./scripts/aiutils.sh check
+```
+
+Configuration is `aiutils.json` in the project root; the ledger database and
+artifacts live in `.aiutils/`.
+
 ## Codex configuration
 
 Generated from the Claude Code configuration by the `claude-to-codex` command
 in [aiutils](https://github.com/danielcsee/aiutils), the same binary
-`testledger.sh` already resolves — so there is nothing extra to install:
+`aiutils.sh` above already fetches — so there is nothing extra to install:
 
 ```bash
-./scripts/testledger.sh claude-to-codex --dry-run   # show the plan
-./scripts/testledger.sh claude-to-codex             # write it
-./scripts/testledger.sh claude-to-codex --prune     # drop generated files whose source is gone
+./scripts/aiutils.sh claude-to-codex --dry-run   # show the plan
+./scripts/aiutils.sh claude-to-codex             # write it
+./scripts/aiutils.sh claude-to-codex --prune     # drop generated files whose source is gone
 ```
 
 `CLAUDE.md` becomes `AGENTS.md` and `.claude/skills/` becomes `.agents/skills/`,

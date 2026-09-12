@@ -33,7 +33,11 @@ crash.log
 # local AWS CLI helper/configuration
 scripts/aws_config.sh
 
-# Testledger runtime state and its downloaded, checksum-pinned binary.
-# The tool itself lives in github.com/danielcsee/testledger; testledger.lock
-# is committed, the binary it names is not.
+# aiutils runtime state and its downloaded binary. The tool itself lives in
+# github.com/danielcsee/aiutils and scripts/aiutils.sh always fetches the
+# latest release, so nothing under here is worth committing.
+.aiutils/
+
+# The pre-rename ledger. Kept on disk for reference; its schema predates
+# aiutils v0.4.0 and nothing reads it any more.
 .testledger/
