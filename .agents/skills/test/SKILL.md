@@ -3,7 +3,7 @@ name: test
 description: Use for running unit tests and checking unit test coverage.
 ---
 
-<!-- Generated from .claude/skills/test/SKILL.md by testledger claude-to-codex. Do not edit; edit the source and re-run. -->
+<!-- Generated from .claude/skills/test/SKILL.md by aiutils claude-to-codex. Do not edit; edit the source and re-run. -->
 
 ## Using Testledger
 
