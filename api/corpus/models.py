@@ -90,6 +90,16 @@ class CorpusPaperDetail(BaseModel):
     #: In document order. The article title is excluded — it is `title`.
     paragraphs: list[PaperParagraph] = Field(default_factory=list)
     references: list[PaperReferenceOut] = Field(default_factory=list)
+    #: Imported papers whose bibliographies point at this paper.
+    imported_reference_count: int = 0
+
+
+class ImportedReferenceList(BaseModel):
+    """Imported papers whose bibliographies point at one stored paper."""
+
+    paper_id: int
+    total: int
+    papers: list[CorpusPaper] = Field(default_factory=list)
 
 
 # --------------------------------------------------------------------------

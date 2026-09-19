@@ -7,6 +7,7 @@ GET /corpus?page=1&page_size=20   ->  CorpusPage        (the listing)
 GET /corpus/rag_search?query=...  ->  RagSearchResponse (ranked papers)
 GET /corpus/{paper_id}            ->  CorpusPaperDetail (one whole paper)
 GET /corpus/{paper_id}/references ->  ReferenceList     (importable refs)
+GET /corpus/{paper_id}/imported-references -> ImportedReferenceList (local citing papers)
 GET /corpus/{paper_id}/entities   ->  PaperEntityList   (concepts + spans)
 ```
 
@@ -36,6 +37,11 @@ text is actually returned — so nothing cheaper can decide whether a reference
 exists as a full Paper. A reference qualifies on `pmcid` **and** body passages.
 Only references carrying a PMID can be asked about at all (0–93% of them,
 measured). Everything returned is importable, so the UI's count is exact.
+
+**`/imported-references` is the inverse, local edge.** It joins a paper's PMID
+against `paper_references.ref_pmid` and returns only citing papers whose final
+import stage is done. It never calls PubTator and does not require the access
+gate.
 
 **Retrieval is LLM-free.** Chunks below `RAG_SCORE_THRESHOLD` are dropped,
 survivors summed per paper, top three returned with their best excerpts. The

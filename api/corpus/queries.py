@@ -67,6 +67,11 @@ def list_papers(session: Session, *, limit: int, offset: int) -> list[CorpusPape
     if not rows:
         return []
 
+    return _to_corpus_papers(session, rows)
+
+
+def _to_corpus_papers(session: Session, rows: Sequence[tuple]) -> list[CorpusPaper]:
+    """Enrich imported-paper rows into the shared preview-card shape."""
     papers = [row[0] for row in rows]
     ids = [paper.id for paper in papers]
     authors = _authors_by_paper(session, ids)
@@ -90,6 +95,41 @@ def list_papers(session: Session, *, limit: int, offset: int) -> list[CorpusPape
         )
         for paper, finished_at in rows
     ]
+
+
+def imported_references(session: Session, pmid: int) -> list[CorpusPaper]:
+    """Imported papers that cite ``pmid``, newest import first."""
+    rows = session.execute(
+        _imported_papers()
+        .join(PaperReference, PaperReference.paper_id == Paper.id)
+        .where(PaperReference.ref_pmid == str(pmid))
+        .distinct()
+        .order_by(PaperStageRun.finished_at.desc().nullslast(), Paper.id.desc())
+    ).all()
+    if not rows:
+        return []
+    return _to_corpus_papers(session, rows)
+
+
+def imported_paper_pmid(session: Session, paper_id: int) -> Optional[int]:
+    """The PMID of one fully imported paper, without loading its document."""
+    row = session.execute(_imported_papers().where(Paper.id == paper_id)).first()
+    return row[0].pmid if row is not None else None
+
+
+def imported_reference_count(session: Session, pmid: int) -> int:
+    """Number of imported papers that cite ``pmid``."""
+    return session.scalar(
+        select(func.count(func.distinct(PaperReference.paper_id)))
+        .select_from(PaperReference)
+        .join(
+            PaperStageRun,
+            (PaperStageRun.paper_id == PaperReference.paper_id)
+            & (PaperStageRun.stage == PaperStageRun.FINAL_STAGE)
+            & (PaperStageRun.status == "done"),
+        )
+        .where(PaperReference.ref_pmid == str(pmid))
+    ) or 0
 
 
 def _authors_by_paper(session: Session, ids: Sequence[int]) -> dict[int, list[str]]:
@@ -208,6 +248,7 @@ def get_paper(session: Session, paper_id: int) -> Optional[CorpusPaperDetail]:
             )
             for r in references
         ],
+        imported_reference_count=imported_reference_count(session, paper.pmid),
     )
 
 

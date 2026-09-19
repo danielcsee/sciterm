@@ -253,7 +253,10 @@ export default function App() {
             key={view.paperId}
             paperId={view.paperId}
             onViewReferences={(paperId, title) =>
-              requireAuth(() => setReferencesFor({ paperId, title }))
+              requireAuth(() => setReferencesFor({ paperId, title, kind: 'references' }))
+            }
+            onViewImportedReferences={(paperId, title) =>
+              setReferencesFor({ paperId, title, kind: 'imported-references' })
             }
             onLoaded={handleLoaded}
             onMissing={handleMissing}
@@ -276,6 +279,7 @@ export default function App() {
         <PaperExplorer
           referencesFor={referencesFor}
           onCloseReferences={() => setReferencesFor(null)}
+          onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
         />
       </main>
     </div>

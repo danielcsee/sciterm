@@ -3,18 +3,21 @@ import { ApiError, importPapers, type ImportPmids, type SearchResult } from '../
 import { useAuth } from '../auth'
 import { useImportStatus } from '../useImportStatus'
 import ImportStatus from './ImportStatus'
+import ImportedReferences from './ImportedReferences'
 import ReferenceImporter from './ReferenceImporter'
 import SearchPubTator from './SearchPubTator'
 
 export interface ReferenceTarget {
   paperId: number
   title: string
+  kind: 'references' | 'imported-references'
 }
 
 interface Props {
   /** Set when the reader asked to see a paper's references. */
   referencesFor: ReferenceTarget | null
   onCloseReferences: () => void
+  onOpenPaper: (paperId: number, title: string | null) => void
 }
 
 /**
@@ -24,7 +27,11 @@ interface Props {
  * Import state lives here rather than in either panel so both feed a single
  * `ImportStatus`, and so switching panels never abandons an import in flight.
  */
-export default function PaperExplorer({ referencesFor, onCloseReferences }: Props) {
+export default function PaperExplorer({
+  referencesFor,
+  onCloseReferences,
+  onOpenPaper,
+}: Props) {
   // Both panels queue through here, so gating this one function covers the
   // search results and the reference list at once — including the case where a
   // code expires while the panel is still open.
@@ -80,13 +87,22 @@ export default function PaperExplorer({ referencesFor, onCloseReferences }: Prop
 
       {showingReferences && (
         <div className="explorer-panel">
-          <ReferenceImporter
-            paperId={referencesFor.paperId}
-            paperTitle={referencesFor.title}
-            onImport={(pmids, papers) => void handleImport(pmids, papers)}
-            importing={importing}
-            onClose={onCloseReferences}
-          />
+          {referencesFor.kind === 'references' ? (
+            <ReferenceImporter
+              paperId={referencesFor.paperId}
+              paperTitle={referencesFor.title}
+              onImport={(pmids, papers) => void handleImport(pmids, papers)}
+              importing={importing}
+              onClose={onCloseReferences}
+            />
+          ) : (
+            <ImportedReferences
+              paperId={referencesFor.paperId}
+              paperTitle={referencesFor.title}
+              onOpenPaper={onOpenPaper}
+              onClose={onCloseReferences}
+            />
+          )}
         </div>
       )}
 

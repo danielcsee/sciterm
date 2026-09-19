@@ -14,6 +14,10 @@ The right-hand panel. Owns import state so `SearchPubTator` and
 `ReferenceImporter` feed one shared `ImportStatus`. Search stays **mounted but
 hidden** while references are shown, so its query, scroll and selection survive.
 
+`ImportedReferences` is the local inverse-citation view. It lists papers already
+in the corpus that cite the open paper; clicking a card opens that paper and
+adds/selects its tab.
+
 ## `SearchPubTator.tsx`
 
 Search against `/pb/search`. Infinite scroll via `IntersectionObserver`;
@@ -42,7 +46,8 @@ hyphenate a token like that, so justification paid for the long unbreakable word
 by stretching the spaces before it: 26.5px against a normal 5.7px on paper 122,
 which reads as a tab. Hyphenation stays.
 Headings come from `chunk_type`. The orange "view references" link opens that
-paper's references in the panel.
+paper's references in the panel. Directly underneath, "imported references"
+opens the locally stored papers that cite it.
 
 ## `PaperEntities.tsx`
 
