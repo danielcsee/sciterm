@@ -23,6 +23,7 @@ from api.corpus.models import (
     MAX_PAGE_SIZE,
     CorpusPage,
     CorpusPaperDetail,
+    ImportedReferenceList,
     RagSearchResponse,
     ReferenceList,
 )
@@ -178,6 +179,30 @@ async def paper_references(
         with_pmid=with_pmid,
         truncated=truncated,
         references=references,
+    )
+
+
+@router.get(
+    "/corpus/{paper_id}/imported-references",
+    response_model=ImportedReferenceList,
+    summary="Imported papers that reference a stored paper",
+)
+def paper_imported_references(
+    paper_id: int = Path(..., ge=1),
+) -> ImportedReferenceList:
+    """Papers already in the corpus whose bibliographies cite this paper."""
+    with session_scope() as session:
+        pmid = queries.imported_paper_pmid(session, paper_id)
+        if pmid is None:
+            raise HTTPException(
+                status_code=404, detail=f"paper {paper_id} is not in your corpus"
+            )
+        papers = queries.imported_references(session, pmid)
+
+    return ImportedReferenceList(
+        paper_id=paper_id,
+        total=len(papers),
+        papers=papers,
     )
 
 

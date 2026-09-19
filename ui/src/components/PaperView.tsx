@@ -14,6 +14,8 @@ interface Props {
   paperId: number
   /** Show this paper's references in the side panel. */
   onViewReferences?: (paperId: number, title: string) => void
+  /** Show imported papers that reference this paper in the side panel. */
+  onViewImportedReferences?: (paperId: number, title: string) => void
   /** Lets the tab title update once the full title arrives. */
   onLoaded?: (paper: PaperDetail) => void
   /** The paper is gone (404), so its tab should not outlive this session. */
@@ -57,6 +59,7 @@ function formatReference(reference: {
 export default function PaperView({
   paperId,
   onViewReferences,
+  onViewImportedReferences,
   onLoaded,
   onMissing,
 }: Props) {
@@ -267,14 +270,29 @@ export default function PaperView({
                   .filter(Boolean)
                   .join(' · ')}
               </span>
-              {onViewReferences && paper.references.length > 0 && (
-                <button
-                  type="button"
-                  className="paper-doc-refs-link"
-                  onClick={() => onViewReferences(paper.paper_id, paper.title ?? 'this paper')}
-                >
-                  view references ({paper.references.length})
-                </button>
+              {(onViewReferences || onViewImportedReferences) && (
+                <span className="paper-doc-links">
+                  {onViewReferences && paper.references.length > 0 && (
+                    <button
+                      type="button"
+                      className="paper-doc-refs-link"
+                      onClick={() => onViewReferences(paper.paper_id, paper.title ?? 'this paper')}
+                    >
+                      view references ({paper.references.length})
+                    </button>
+                  )}
+                  {onViewImportedReferences && (
+                    <button
+                      type="button"
+                      className="paper-doc-refs-link"
+                      onClick={() =>
+                        onViewImportedReferences(paper.paper_id, paper.title ?? 'this paper')
+                      }
+                    >
+                      imported references ({paper.imported_reference_count})
+                    </button>
+                  )}
+                </span>
               )}
             </p>
           </header>

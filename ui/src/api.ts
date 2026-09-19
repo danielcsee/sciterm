@@ -249,6 +249,7 @@ export interface PaperDetail {
   authors: string[]
   paragraphs: PaperParagraph[]
   references: PaperReference[]
+  imported_reference_count: number
 }
 
 export function isHeading(paragraph: PaperParagraph): boolean {
@@ -274,6 +275,29 @@ export async function fetchPaper(
     throw new ApiError(detail, response.status)
   }
   return (await response.json()) as PaperDetail
+}
+
+export interface ImportedReferenceList {
+  paper_id: number
+  total: number
+  papers: CorpusPaper[]
+}
+
+/** Imported papers whose bibliographies cite the selected paper. */
+export async function fetchImportedReferences(
+  paperId: number,
+  signal?: AbortSignal,
+): Promise<ImportedReferenceList> {
+  const response = await authFetch(`/corpus/${paperId}/imported-references`, { signal })
+  if (!response.ok) {
+    throw new ApiError(
+      response.status === 404
+        ? 'That paper is not in your corpus.'
+        : `could not load imported references (${response.status})`,
+      response.status,
+    )
+  }
+  return (await response.json()) as ImportedReferenceList
 }
 
 // --- entities in one paper ---
