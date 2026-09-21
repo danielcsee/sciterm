@@ -18,6 +18,10 @@ class Settings(BaseSettings):
 
     # Where the compiled React bundle lives. The Docker image overrides this.
     sciterm_ui_dist: Path = REPO_ROOT / "ui" / "dist"
+    #: Set by `scripts/dev.sh` to the Vite server. When set, browser routes on
+    #: the API port redirect there instead of serving `sciterm_ui_dist`, which
+    #: in dev is whatever the last `--prod` run happened to build.
+    sciterm_ui_dev_url: Optional[str] = None
 
     # Datastore connection, so the image and the host process read its address
     # from one place.
