@@ -24,6 +24,7 @@ datastores and applies migrations.
 | [`corpus/`](corpus) | Read-only `/corpus` listing of imported papers |
 | [`entity_matching/`](entity_matching) | Entity candidates for chat queries |
 | [`llm/`](llm) | OpenAI: routes chat queries to a tool, resolves entities |
+| [`paper_search/`](paper_search) | Chooses chat's papers by entity coverage or full-text |
 
 ## Dependencies
 

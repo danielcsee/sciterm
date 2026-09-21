@@ -4,7 +4,7 @@ The OpenAI integration. Today it does one thing: routes each chat query to a
 single tool, and confirms which entity candidates the query names.
 
 ```
-rag_search -> filter_entity_matches -> classify_intent -> IntentResult
+rag_search -> filter_entity_matches -> classify_intent -> IntentResult -> api.paper_search
 ```
 
 ## Files
@@ -31,7 +31,8 @@ call — so the intent and the entities arrive together.
 Ids that were never offered are dropped.
 
 **Failure never breaks chat.** No key, a timeout, or a malformed answer leaves
-`intent` null and explains itself in `intent_error`; retrieval still answers.
+`intent` null and explains itself in `intent_error`; paper search still
+answers from the query's noun phrases.
 
 ## Dependencies
 

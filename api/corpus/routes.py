@@ -13,7 +13,7 @@ from math import ceil
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 
 from api.auth import require_user
-from api.corpus import queries, rag
+from api.corpus import queries
 from api.ncbi.errors import NcbiError
 from api.corpus.models import (
     EntitySpan,
@@ -30,12 +30,14 @@ from api.corpus.models import (
 from api.app.config import get_settings
 from api.entity_matching import (
     EntityMatchManager,
+    QueryFragment,
     extract_query_fragments,
     filter_entity_matches,
     get_cutoffs,
 )
 from api.ingestion.embedding import embed_queries
 from api.llm import LlmError, classify_intent, get_llm_client
+from api.paper_search import search_papers
 from api.pb_client import PubTatorClient
 from api.db import session_scope
 
@@ -88,58 +90,59 @@ def list_corpus(
 @protected_router.get(
     "/corpus/rag_search",
     response_model=RagSearchResponse,
-    summary="Rank imported papers against a query",
+    summary="Route a chat query and search imported papers",
 )
 def rag_search(
     query: str = Query(..., min_length=2, description="Free-text question."),
 ) -> RagSearchResponse:
-    """Retrieval, plus OpenAI intent routing. No generated answer yet.
+    """Entity matching, OpenAI intent routing, then paper search. No generated answer yet.
 
-    Every stored chunk is scored against the query, anything below
-    `rag_score_threshold` is discarded, the survivors are aggregated per paper,
-    and the best few papers come back with their strongest excerpts. OpenAI
-    then picks the tool the query calls for and confirms which entity
-    candidates it names.
+    Candidate entities are matched from the query's fragments and filtered;
+    OpenAI picks the tool the query calls for and confirms which candidates it
+    names. `paper_search` and `paper_analysis` both run `api.paper_search`,
+    which searches by the confirmed entities, or by the query's noun phrases
+    when there are none. `no_match` returns no papers.
 
     Registered before `/corpus/{paper_id}`: FastAPI matches routes in order,
     and "rag_search" against an int path parameter is a 422.
     """
-    settings = get_settings()
     text = query.strip()
     if not text:
         raise HTTPException(status_code=400, detail="query must not be blank")
 
     fragments = extract_query_fragments(text)
-    vectors = embed_queries([text, *(fragment.text for fragment in fragments)])
+    result = _match_entities(text, fragments)
+    _route_intent(result, text)
+    if _wants_papers(result):
+        _search_papers(result, fragments)
+    log.info(
+        "rag_search %r -> tool %s, %s search over %d terms, %d of %d papers",
+        text,
+        result.intent.tool if result.intent else None,
+        result.search_method,
+        len(result.search_terms),
+        len(result.papers),
+        result.papers_considered,
+    )
+    return result
+
+
+def _match_entities(text: str, fragments: list[QueryFragment]) -> RagSearchResponse:
+    """Raw and filtered entity candidates for the query's fragments."""
+    settings = get_settings()
+    vectors = embed_queries([fragment.text for fragment in fragments])
     with session_scope() as session:
-        result = rag.search(
-            session,
-            text,
-            vectors[0],
-            threshold=settings.rag_score_threshold,
-            top_papers=settings.rag_top_papers,
-            chunks_per_paper=settings.rag_chunks_per_paper,
-        )
-        result.entity_matches = EntityMatchManager(
+        entity_matches = EntityMatchManager(
             session,
             top_k=settings.entity_match_top_k,
             embedding_threshold=settings.entity_match_embedding_threshold,
             trigram_threshold=settings.entity_match_trigram_threshold,
-        ).search(fragments, vectors[1:])
-    result.filtered_entity_matches = filter_entity_matches(
-        result.entity_matches, text, get_cutoffs()
+        ).search(fragments, vectors)
+    return RagSearchResponse(
+        query=text,
+        entity_matches=entity_matches,
+        filtered_entity_matches=filter_entity_matches(entity_matches, text, get_cutoffs()),
     )
-    _route_intent(result, text)
-    log.info(
-        "rag_search %r -> %d papers from %d chunks and %d entity paths over %.2f, tool %s",
-        text,
-        len(result.papers),
-        result.chunks_considered,
-        len(result.entity_matches),
-        result.threshold,
-        result.intent.tool if result.intent else None,
-    )
-    return result
 
 
 def _route_intent(result: RagSearchResponse, text: str) -> None:
@@ -153,6 +156,32 @@ def _route_intent(result: RagSearchResponse, text: str) -> None:
     except LlmError as exc:
         log.warning("intent routing failed for %r: %s", text, exc)
         result.intent_error = str(exc)
+
+
+def _wants_papers(result: RagSearchResponse) -> bool:
+    """Every tool but `no_match` searches. So does chat when routing could not
+    run: with no confirmed entities, the noun-phrase search still answers."""
+    return result.intent is None or result.intent.tool != "no_match"
+
+
+def _search_papers(result: RagSearchResponse, fragments: list[QueryFragment]) -> None:
+    """Fill the paper fields of `result`. Its own session: routing may have
+    held the request for seconds, and no connection should wait on OpenAI."""
+    settings = get_settings()
+    entities = result.intent.entities if result.intent else []
+    with session_scope() as session:
+        found = search_papers(
+            session,
+            entities,
+            fragments,
+            top_k=settings.paper_search_top_k,
+            chunks_per_paper=settings.paper_search_chunks_per_paper,
+            max_term_fraction=settings.paper_search_max_term_fraction,
+        )
+    result.papers = found.papers
+    result.search_method = found.method
+    result.search_terms = found.terms
+    result.papers_considered = found.papers_considered
 
 
 @protected_router.get(

@@ -366,32 +366,50 @@ export async function fetchPaperEntities(
 
 // --- rag search ---
 
-export interface RagChunk {
+/** A passage showing why a paper was selected. */
+export interface EvidenceChunk {
   chunk_id: number
   section_type: string | null
   text: string
+  /** Query-entity mentions in the chunk, or its full-text rank. */
   score: number
 }
 
-export interface RagPaper {
+export interface SearchedPaper {
   paper_id: number
   pmid: number
   pmcid: string | null
   title: string | null
   journal: string | null
   pub_year: number | null
+  /** Distinct query terms the paper matched: the primary sort key. */
+  terms_matched: number
+  /** Total hits across those terms. */
+  mentions: number
+  /** IDF-weighted secondary sort key. */
   score: number
-  matched_chunks: number
-  best_score: number
-  chunks: RagChunk[]
+  /** Why the paper earned a slot, e.g. "broadest coverage". */
+  selected_by: string[]
+  chunks: EvidenceChunk[]
+}
+
+export type SearchMethod = 'entity' | 'full_text'
+
+export interface SearchTermSummary {
+  phrase: string
+  entity_ids: number[]
+  papers_matched: number
+  weight: number
+  dropped: boolean
 }
 
 export interface RagSearchResponse {
   query: string
-  threshold: number
-  aggregator: string
-  chunks_considered: number
-  papers: RagPaper[]
+  papers: SearchedPaper[]
+  /** Which search produced `papers`; null when none ran (`no_match`). */
+  search_method: SearchMethod | null
+  search_terms: SearchTermSummary[]
+  papers_considered: number
   entity_matches: EntityMatchGroup[]
   filtered_entity_matches: EntityStrategyGroup[]
   /** The tool OpenAI routed the query to; null when routing is off or failed. */

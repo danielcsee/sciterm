@@ -113,7 +113,7 @@ export default function ChatWindow({ messages, onSend, onOpenPaper }: Props) {
                       {message.results && (
                         <RagResults
                           papers={message.results}
-                          chunksConsidered={message.chunksConsidered ?? 0}
+                          papersConsidered={message.papersConsidered ?? 0}
                           onOpenPaper={onOpenPaper}
                         />
                       )}

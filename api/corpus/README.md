@@ -4,7 +4,7 @@ Reads over papers that finished importing.
 
 ```
 GET /corpus?page=1&page_size=20   ->  CorpusPage        (the listing)
-GET /corpus/rag_search?query=...  ->  RagSearchResponse (ranked papers)
+GET /corpus/rag_search?query=...  ->  RagSearchResponse (routed tool + papers)
 GET /corpus/{paper_id}            ->  CorpusPaperDetail (one whole paper)
 GET /corpus/{paper_id}/references ->  ReferenceList     (importable refs)
 GET /corpus/{paper_id}/imported-references -> ImportedReferenceList (local citing papers)
@@ -19,7 +19,6 @@ Read-only: `api.ingestion` writes these tables, this package reads them.
 |---|---|
 | `routes.py` | The four GET routes: paging and validation |
 | `queries.py` | Listing, detail and reference reads |
-| `rag.py` | Retrieval: score chunks, aggregate per paper, rank |
 | `models.py` | Response models for all four |
 
 ## Decisions worth knowing
@@ -43,14 +42,14 @@ against `paper_references.ref_pmid` and returns only citing papers whose final
 import stage is done. It never calls PubTator and does not require the access
 gate.
 
-**Retrieval is LLM-free; routing is not.** Chunks below `RAG_SCORE_THRESHOLD` are dropped,
-survivors summed per paper, top three returned with their best excerpts. The
-same response includes experimental entity candidates grouped by extraction,
-matching method, and searched source. The aggregator is a named function;
-`AGGREGATORS` also holds `max` and `mean`. After retrieval, `api.llm` asks
-OpenAI which tool the query calls for and which filtered candidates it names;
-that lands in `intent`, or `intent_error` if it could not run.
+**Chat search is routed first.** `rag_search` matches entity candidates for
+the query's fragments and filters them. It then asks `api.llm` which tool the
+query calls for and which candidates it names. `paper_search` and
+`paper_analysis` both run `api.paper_search`, and `no_match` returns no
+papers. When routing is unconfigured or fails, the search still runs on noun
+phrases and `intent_error` explains what happened. The OpenAI call and the
+paper search use separate DB sessions, so no connection waits on OpenAI.
 
 ## Dependencies
 
-`api.db`, `api.pb_client`, `api.ncbi`, `api.ingestion.embedding`, `api.entity_matching`, `api.llm`, `fastapi`, `pydantic`.
+`api.db`, `api.pb_client`, `api.ncbi`, `api.ingestion.embedding`, `api.entity_matching`, `api.llm`, `api.paper_search`, `fastapi`, `pydantic`.
