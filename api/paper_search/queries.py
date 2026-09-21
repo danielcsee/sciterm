@@ -94,3 +94,15 @@ SELECT id, pmid, pmcid, title, journal, pub_year
 FROM papers
 WHERE id = ANY(CAST(:paper_ids AS bigint[]))
 """
+
+#: Each paper's abstract prose in reading order. Structured abstracts arrive as
+#: several chunks, with their headings ("Background") as `abstract_title_1`
+#: chunks of their own; those are left out so the preview reads as prose.
+ABSTRACTS_SQL = """
+SELECT paper_id, string_agg(text, ' ' ORDER BY ordinal) AS abstract
+FROM paper_chunks
+WHERE paper_id = ANY(CAST(:paper_ids AS bigint[]))
+  AND section_type = 'ABSTRACT'
+  AND coalesce(chunk_type, '') <> 'abstract_title_1'
+GROUP BY paper_id
+"""

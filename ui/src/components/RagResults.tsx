@@ -21,8 +21,8 @@ function paperSummary(paper: SearchedPaper): string {
  * The papers behind an answer.
  *
  * There is no generated prose yet, so the "answer" is the selected papers
- * themselves. Each card says why it was chosen and shows its strongest
- * passage, which is the part that actually justifies the choice.
+ * themselves. Each card says why it was chosen and previews its abstract,
+ * already cut to length by the API.
  */
 export default function RagResults({ papers, papersConsidered, onOpenPaper }: Props) {
   if (papers.length === 0) {
@@ -58,12 +58,10 @@ export default function RagResults({ papers, papersConsidered, onOpenPaper }: Pr
                 extra={paperSummary(paper)}
               />
             </button>
-            {paper.chunks.length > 0 && (
+            {paper.abstract_preview && (
               <blockquote className="rag-quote">
-                {paper.chunks[0].section_type && (
-                  <span className="rag-quote-section">{paper.chunks[0].section_type}</span>
-                )}
-                {paper.chunks[0].text}
+                <span className="rag-quote-section">ABSTRACT</span>
+                {paper.abstract_preview}
               </blockquote>
             )}
           </li>

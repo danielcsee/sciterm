@@ -90,6 +90,9 @@ class SearchedPaper(BaseModel):
     #: Why the paper earned a slot: broadest coverage, the most mentions of a
     #: particular term, or rank alone.
     selected_by: list[str] = Field(default_factory=list)
+    #: The abstract's first `ABSTRACT_PREVIEW_CHARS` characters, ellipsised
+    #: when cut. Null for a paper stored without an abstract.
+    abstract_preview: Optional[str] = None
     chunks: list[EvidenceChunk] = Field(default_factory=list)
 
 
