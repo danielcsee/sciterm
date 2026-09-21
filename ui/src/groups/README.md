@@ -5,7 +5,7 @@ The Smart Groups page (`/my-groups`): shared, named sets of corpus entities.
 ## Files
 
 **`GroupsView.tsx`** — the page. "+ New Group" opens `GroupBuilder`; saved
-groups follow as `GroupTile`s, newest first. A tile click or its arrow opens
+groups follow as `GroupTile`s, newest first. A tile click or Search opens
 `GroupPaperResults`; Edit opens `EditGroupModal`.
 
 **`GroupPaperResults.tsx`** — the group's papers, paged on scroll by
@@ -20,7 +20,7 @@ as removable `EntityChip`s beneath. Save is disabled while empty and opens
 asks once more in place). Nothing is written until Save.
 
 **`GroupTile.tsx`** — fixed 192×164 tiles; a `<div>`, since its
-buttons cannot nest in a button. Search (the
+buttons cannot nest in a button. Search (with the
 outgoing-arrow icon) sits top right, Edit bottom right. Chips that would be cut off are measured and hidden whole; the footer says "+N more".
 
 **`EntityTypeahead.tsx`** / **`useEntitySuggestions.ts`** — an ARIA combobox
