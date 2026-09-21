@@ -87,6 +87,9 @@ class Settings(BaseSettings):
     entity_match_top_k: int = 5
     entity_match_embedding_threshold: float = 0.55
     entity_match_trigram_threshold: float = 0.3
+    #: Per-matcher cutoffs applied when filtering candidates, read once at
+    #: startup. The thresholds above only bound retrieval.
+    entity_match_cutoffs_path: Path = REPO_ROOT / "api" / "entity_matching" / "cutoffs.toml"
 
     #: torch device for the encoder. None lets sentence-transformers choose,
     #: which is "mps" on Apple silicon. Set to "cpu" when the worker must run

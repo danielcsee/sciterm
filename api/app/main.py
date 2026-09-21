@@ -15,6 +15,7 @@ from api.cache import DocumentCache
 from api.redis_conn import close_client as close_redis
 from api.corpus import protected_router as corpus_protected_router
 from api.corpus import router as corpus_router
+from api.entity_matching import get_cutoffs
 from api.ingestion import router as ingestion_router
 from api.ncbi import http as ncbi_http
 from api.pb_client import PubTatorClient
@@ -51,6 +52,9 @@ async def lifespan(app: FastAPI):
         client, settings.pubtator_base_url, cache=app.state.cache
     )
     app.state.pmc = PmcClient(client, settings.pmc_s3_base_url, settings.papers_dir)
+    # Read now, so a missing or invalid cutoffs file fails the boot instead of
+    # the first chat query.
+    log.info("entity match cutoffs: %s", get_cutoffs())
     log.info(
         "sciterm starting in %s (auth %s)",
         settings.sciterm_env,

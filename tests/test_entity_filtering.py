@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from api.entity_matching.cutoffs import MatchCutoffs
 from api.entity_matching.filtering import filter_entity_matches
 from api.entity_matching.models import EntityMatch, EntityMatchGroup
 
@@ -31,6 +32,7 @@ def _group(
 
 
 LONG_QUERY = "one two three four five six"
+CUTOFFS = MatchCutoffs(trigram=0.65, embedding=0.65)
 
 
 def test_filter_entity_matches() -> None:
@@ -69,6 +71,16 @@ def test_filter_entity_matches() -> None:
             "expected": {("trigram", "f"): [("keep", 1)]},
         },
         {
+            "name": "each matcher is held to its own cutoff",
+            "query": LONG_QUERY,
+            "groups": [
+                _group("f", [_match("a", 0.85, 1), _match("b", 0.75, 2)], "trigram"),
+                _group("f", [_match("c", 0.75, 3), _match("d", 0.65, 4)], "embedding"),
+            ],
+            "cutoffs": MatchCutoffs(trigram=0.8, embedding=0.7),
+            "expected": {("trigram", "f"): [("a", 1)], ("embedding", "f"): [("c", 3)]},
+        },
+        {
             "name": "strategies are limited independently",
             "query": "lung",
             "groups": [
@@ -80,7 +92,9 @@ def test_filter_entity_matches() -> None:
     ]
 
     for case in cases:
-        result = filter_entity_matches(case["groups"], case["query"])
+        result = filter_entity_matches(
+            case["groups"], case["query"], case.get("cutoffs", CUTOFFS)
+        )
         actual: dict[tuple[str, str], list[tuple[str, int]]] = {}
         for group in result:
             for match in group.matches:

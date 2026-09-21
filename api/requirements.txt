@@ -22,3 +22,5 @@ openai>=2.48,<3
 PyJWT>=2.9,<3
 # Admin auth: verifies SSH signatures against api/authorized_keys/.
 cryptography>=43,<47
+# Entity-match cutoffs are TOML; tomllib is stdlib only from 3.11.
+tomli>=2,<3; python_version < "3.11"
