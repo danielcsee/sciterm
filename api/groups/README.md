@@ -11,6 +11,8 @@ GET    /entities/suggest?q=...  ->  EntitySuggestions (type-ahead)
 ```
 
 All ungated: groups have no owner; the type-ahead is local compute.
+`GET /groups/{id}/papers`, the group's papers in subgroups, lives in
+`api/group_search`.
 
 ## Files
 

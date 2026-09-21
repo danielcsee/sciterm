@@ -111,6 +111,16 @@ def imported_references(session: Session, pmid: int) -> list[CorpusPaper]:
     return _to_corpus_papers(session, rows)
 
 
+def imported_papers_by_ids(session: Session, ids: Sequence[int]) -> dict[int, CorpusPaper]:
+    """Preview cards for the given papers, keyed by id; unimported ids are absent."""
+    if not ids:
+        return {}
+    rows = session.execute(_imported_papers().where(Paper.id.in_(list(ids)))).all()
+    if not rows:
+        return {}
+    return {paper.paper_id: paper for paper in _to_corpus_papers(session, rows)}
+
+
 def imported_paper_pmid(session: Session, paper_id: int) -> Optional[int]:
     """The PMID of one fully imported paper, without loading its document."""
     row = session.execute(_imported_papers().where(Paper.id == paper_id)).first()
