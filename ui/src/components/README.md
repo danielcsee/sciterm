@@ -17,8 +17,17 @@ Candidates", which pool fragments per strategy and name each match's fragment.
 A third, "OpenAI Entities", renders `IntentEntityList`: the candidates OpenAI
 confirmed, each with the query phrase that named it.
 
-A `paper_analysis` answer renders as `AnalysisAnswer`, then a **Citations**
-disclosure (open by default) above Debug, in place of the result list.
+A `paper_analysis` reply renders as `AnalysisMessage`, in place of the result
+list. Auto-scroll to the end runs for a new message or a finished search,
+never for a piece of a streaming answer.
+
+## `AnalysisMessage.tsx`
+
+A **Citations** disclosure (open by default), then the answer streaming in
+below it, above Debug. When the first words arrive the answer is scrolled to the
+top of the chat once, and then left alone to run off the bottom. Scrolling an
+element to the top needs a screen of content under it, so the newest answer is
+floored at the chat's height.
 
 ## `AnalysisAnswer.tsx`, `CitationList.tsx`, `CitationMarker.tsx`
 

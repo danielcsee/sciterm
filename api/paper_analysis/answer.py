@@ -1,13 +1,17 @@
-"""Turn gathered evidence into a cited answer. Never raises: failures explain
-themselves in `PaperAnalysisResult.error`, and the citations still return."""
+"""Turn gathered evidence into a cited answer, streamed as it is written.
+
+`start_analysis` packages the citations, which can be shown at once;
+`stream_answer` then writes the answer. Neither raises: failures explain
+themselves in `PaperAnalysisResult.error`, and the citations still return.
+"""
 
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import Optional
 
-from api.llm import AnalysisPassage, LlmClient, LlmError, write_analysis
+from api.llm import AnalysisPassage, LlmClient, LlmError, stream_analysis
 from api.paper_analysis.models import Citation, Evidence, PaperAnalysisResult
 from api.paper_search import SearchedPaper
 
@@ -15,18 +19,13 @@ log = logging.getLogger(__name__)
 
 NO_EVIDENCE = "No paragraph in the matched papers mentions what you asked about."
 NO_CLIENT = "OpenAI is not configured (OPENAI_API_KEY is unset)"
+EMPTY_ANSWER = "OpenAI returned an empty answer"
 
 
-def answer_question(
-    client: Optional[LlmClient],
-    question: str,
-    evidence: Evidence,
-    papers: Sequence[SearchedPaper],
-    entity_ids: Sequence[int],
-    *,
-    timeout: float,
+def start_analysis(
+    client: Optional[LlmClient], evidence: Evidence, entity_ids: Sequence[int]
 ) -> PaperAnalysisResult:
-    """Ask the model to answer from the evidence, and package the result."""
+    """The citations, with `error` already set when no answer can be written."""
     result = PaperAnalysisResult(
         citations=evidence.citations,
         entity_ids=list(entity_ids),
@@ -36,9 +35,35 @@ def answer_question(
         result.error = NO_EVIDENCE
     elif client is None:
         result.error = NO_CLIENT
-    else:
-        _generate(result, client, question, analysis_passages(evidence.citations, papers), timeout)
     return result
+
+
+def stream_answer(
+    client: Optional[LlmClient],
+    question: str,
+    result: PaperAnalysisResult,
+    papers: Sequence[SearchedPaper],
+    *,
+    timeout: float,
+) -> Iterator[str]:
+    """Yield the answer as the model writes it, then fill in `result`.
+
+    Yields nothing when `start_analysis` already found a reason not to ask.
+    Once exhausted, `result.answer` and `result.model` are set, or `error` is.
+    """
+    if client is None or result.error is not None:
+        return
+    passages = analysis_passages(result.citations, papers)
+    pieces: list[str] = []
+    try:
+        for piece in stream_analysis(client, question, passages, timeout=timeout):
+            pieces.append(piece)
+            yield piece
+    except LlmError as exc:
+        log.warning("paper analysis failed for %r: %s", question, exc)
+        result.error = str(exc)
+        return
+    _finish(result, "".join(pieces).strip(), client.model)
 
 
 def analysis_passages(
@@ -48,19 +73,12 @@ def analysis_passages(
     return [_passage(citation, by_id.get(citation.paper_id)) for citation in citations]
 
 
-def _generate(
-    result: PaperAnalysisResult,
-    client: LlmClient,
-    question: str,
-    passages: list[AnalysisPassage],
-    timeout: float,
-) -> None:
-    try:
-        result.answer = write_analysis(client, question, passages, timeout=timeout)
-        result.model = client.model
-    except LlmError as exc:
-        log.warning("paper analysis failed for %r: %s", question, exc)
-        result.error = str(exc)
+def _finish(result: PaperAnalysisResult, answer: str, model: str) -> None:
+    if not answer:
+        result.error = EMPTY_ANSWER
+        return
+    result.answer = answer
+    result.model = model
 
 
 def _passage(citation: Citation, paper: Optional[SearchedPaper]) -> AnalysisPassage:

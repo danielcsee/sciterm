@@ -4,7 +4,7 @@ Reads over papers that finished importing.
 
 ```
 GET /corpus?page=1&page_size=20   ->  CorpusPage        (the listing)
-GET /corpus/rag_search?query=...  ->  RagSearchResponse (routed tool + papers)
+GET /corpus/rag_search?query=...  ->  NDJSON stream     (routed tool + papers, then the answer)
 GET /corpus/{paper_id}            ->  CorpusPaperDetail (one whole paper)
 GET /corpus/{paper_id}/references ->  ReferenceList     (importable refs)
 GET /corpus/{paper_id}/imported-references -> ImportedReferenceList (local citing papers)
@@ -47,7 +47,12 @@ the query's fragments and filters them. It then asks `api.llm` which tool the
 query calls for and which candidates it names. `paper_search` and
 `paper_analysis` both run `api.paper_search`, and `no_match` returns no
 papers. `paper_analysis` then fills `analysis` via `api.paper_analysis`: a
-cited answer, and the paragraphs it cites. When routing is unconfigured or fails, the search still runs on noun
+cited answer, and the paragraphs it cites.
+
+**`rag_search` streams.** The answer takes ~12s to write, so the response is
+NDJSON: a `result` line with everything but the answer (citations included),
+then `answer_delta` lines and one `answer_done`. See `RagResultEvent` and its
+siblings in `models.py`. When routing is unconfigured or fails, the search still runs on noun
 phrases and `intent_error` explains what happened. The OpenAI call and the
 paper search use separate DB sessions, so no connection waits on OpenAI.
 

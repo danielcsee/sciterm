@@ -11,8 +11,12 @@ and imports `styles.css`.
 
 **`App.tsx`** — owns chat state, the open paper tabs and the visit stack.
 Closing a paper tab pops that stack, skipping entries whose tab has since
-closed: that is how "go back to where I was" works. `handleSend` calls
-`/corpus/rag_search`; the backend runs no LLM, so answers are ranked evidence.
+closed: that is how "go back to where I was" works. `handleSend` reads the
+`/corpus/rag_search` stream, folding each line into the reply with
+`ragAnswer.ts`.
+
+**`ragAnswer.ts`** — pure message updates for that stream: the result, each
+answer piece, the finish, and a connection that dropped part-way.
 The sciterm logo is a link to `/`: a plain click returns to the chat in-app,
 keeping the conversation; a modified click opens a new tab.
 
@@ -30,7 +34,7 @@ off, with a five-minute cap.
 
 **`api.ts`** — typed access to the `/pb`, `/import` and `/corpus` routes,
 mirroring the backend response models, so **changing one there means changing
-this file too**. Throws `ApiError`, which carries the HTTP status. Every call
+this file too**. `streamRagSearch` yields the NDJSON lines of `rag_search`. Throws `ApiError`, which carries the HTTP status. Every call
 goes through `authFetch` from [`auth/`](auth), which attaches the access token
 and retries once through `/auth/refresh` on a 401.
 

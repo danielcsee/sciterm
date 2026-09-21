@@ -18,8 +18,13 @@ export interface Message {
   status?: MessageStatus
   /** Ranked papers backing an assistant answer. */
   results?: SearchedPaper[]
-  /** A `paper_analysis` answer; its citations then replace the result list. */
+  /**
+   * A `paper_analysis` answer; its citations then replace the result list.
+   * They arrive first, and `answer` grows as the model writes it.
+   */
   analysis?: PaperAnalysisResult
+  /** True from the citations' arrival until the answer is finished or fails. */
+  answerPending?: boolean
   /** How many papers matched any query term, before the top few were kept. */
   papersConsidered?: number
   /** Experimental entity candidates, kept grouped by discovery path. */

@@ -1,4 +1,4 @@
-"""OpenAI transport: one forced tool call per request, parsed and checked.
+"""OpenAI transport: a forced tool call, or a streamed answer, each checked.
 
 Business logic (what to ask, and what the answer means) lives in `intent.py`;
 this module only sends the request and validates the shape of what came back.
@@ -7,14 +7,22 @@ this module only sends the request and validates the shape of what came back.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Optional
 
 import openai
 from openai.types.chat import ChatCompletionFunctionToolParam
-from openai.types.responses import ParsedResponse, ParsedResponseFunctionToolCall
+from openai.types.responses import (
+    ParsedResponse,
+    ParsedResponseFunctionToolCall,
+    ResponseErrorEvent,
+    ResponseFailedEvent,
+    ResponseIncompleteEvent,
+    ResponseStreamEvent,
+    ResponseTextDeltaEvent,
+)
 from pydantic import BaseModel
 
 from api.app.config import get_settings
@@ -72,31 +80,42 @@ class LlmClient:
             raise LlmError(f"OpenAI request failed: {exc}") from exc
         return _single_tool_call(response)
 
-    def write_text(self, instructions: str, user_input: str, *, timeout: float) -> str:
-        """Free-text answer, with its own timeout and no retry.
+    def stream_text(self, instructions: str, user_input: str, *, timeout: float) -> Iterator[str]:
+        """Free-text answer, yielded as the model writes it. No retry.
 
         Generation takes far longer than routing, so it gets a longer budget —
         and a retry would double a wait the reader is already sitting through.
+        The timeout bounds each read, not the whole answer. Raises LlmError,
+        possibly after some text has already been yielded.
         """
         try:
-            response = self._client.with_options(timeout=timeout, max_retries=0).responses.create(
+            with self._client.with_options(timeout=timeout, max_retries=0).responses.create(
                 model=self._model,
                 instructions=instructions,
                 input=user_input,
                 store=False,
+                stream=True,
                 **self._reasoning_options(),
-            )
+            ) as stream:
+                yield from _text_deltas(stream)
         except openai.OpenAIError as exc:
             raise LlmError(f"OpenAI request failed: {exc}") from exc
-        answer = response.output_text.strip()
-        if not answer:
-            raise LlmError("OpenAI returned an empty answer")
-        return answer
 
     def _reasoning_options(self) -> dict[str, object]:
         if self._reasoning_effort is None:
             return {}
         return {"reasoning": {"effort": self._reasoning_effort}}
+
+
+def _text_deltas(events: Iterable[ResponseStreamEvent]) -> Iterator[str]:
+    """The answer's text as it arrives, or LlmError when the response ends badly."""
+    for event in events:
+        if isinstance(event, ResponseTextDeltaEvent):
+            yield event.delta
+        elif isinstance(event, ResponseErrorEvent):
+            raise LlmError(f"OpenAI stream failed: {event.message}")
+        elif isinstance(event, (ResponseFailedEvent, ResponseIncompleteEvent)):
+            raise LlmError(f"OpenAI response ended as {event.response.status}")
 
 
 def _single_tool_call(response: ParsedResponse[object]) -> ToolCall:

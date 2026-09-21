@@ -175,7 +175,7 @@ not offered as candidates are dropped. Measured at ~3–5s per call with
 ### `POST /responses` — paper analysis answer
 
 A second call, only for queries routed to `paper_analysis` that found papers,
-via `client.responses.create`. Plain text out; no tools.
+via `client.responses.create(stream=True)`. Plain text out; no tools.
 
 | Param | Value |
 |---|---|
@@ -184,7 +184,11 @@ via `client.responses.create`. Plain text out; no tools.
 | `input` | JSON: `{question, passages: [{number, paper, year, section, text}]}` — up to ~15 paragraphs |
 | `reasoning.effort` | `OPENAI_REASONING_EFFORT`; omitted when unset |
 | `store` | `false` |
+| `stream` | `true` — the answer is relayed to the browser as it is written |
 
-Response: `output_text`, prose citing passages as `[n]`; empty is an error.
-Timeout `OPENAI_ANALYSIS_TIMEOUT_SECONDS` (60s), **no retry**. Measured at ~12s
-for 10 passages with `gpt-5-mini` at `low` effort (~17s for the whole request).
+Response: server-sent events. Only `response.output_text.delta` carries text;
+`error`, `response.failed` and `response.incomplete` end the answer as an
+error, and an empty answer is one too. Timeout
+`OPENAI_ANALYSIS_TIMEOUT_SECONDS` (60s) bounds each read, **no retry**.
+Measured at ~12s for 10 passages with `gpt-5-mini` at `low` effort (~17s for
+the whole request); streamed, the first words arrive after ~3.5s of that.

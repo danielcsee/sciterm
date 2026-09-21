@@ -37,6 +37,6 @@ does not need them yet.
 
 ## Notes
 
-The chat pane calls `/corpus/rag_search`. Each answer names the tool OpenAI
-routed the query to (`Tool: paper_analysis`) above the ranked papers; no prose
-is generated yet. The sidebar search calls `/pb/search`.
+The chat pane calls `/corpus/rag_search`, which streams. A `paper_search`
+answer names the routed tool above the ranked papers; a `paper_analysis` answer
+shows its citations first, then the prose answer streaming in beneath them. The sidebar search calls `/pb/search`.

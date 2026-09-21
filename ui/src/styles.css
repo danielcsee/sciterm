@@ -341,6 +341,9 @@ body {
 /* The answer is prose, so it keeps the message's line breaks. */
 .analysis-answer { line-height: 1.65; }
 
+/* The answer, beneath its citations. */
+.analysis-block { margin-top: 18px; }
+
 /* An inline [n]: the accent colour marks it as clickable without a box that
    would break up the sentence it sits in. */
 .citation-marker {
