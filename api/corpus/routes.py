@@ -32,6 +32,7 @@ from api.entity_matching import (
     EntityMatchManager,
     extract_query_fragments,
     filter_entity_matches,
+    get_cutoffs,
 )
 from api.ingestion.embedding import embed_queries
 from api.llm import LlmError, classify_intent, get_llm_client
@@ -125,7 +126,9 @@ def rag_search(
             embedding_threshold=settings.entity_match_embedding_threshold,
             trigram_threshold=settings.entity_match_trigram_threshold,
         ).search(fragments, vectors[1:])
-    result.filtered_entity_matches = filter_entity_matches(result.entity_matches, text)
+    result.filtered_entity_matches = filter_entity_matches(
+        result.entity_matches, text, get_cutoffs()
+    )
     _route_intent(result, text)
     log.info(
         "rag_search %r -> %d papers from %d chunks and %d entity paths over %.2f, tool %s",

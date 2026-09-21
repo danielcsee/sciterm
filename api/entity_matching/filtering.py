@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from api.entity_matching.cutoffs import MatchCutoffs
 from api.entity_matching.models import (
     EntityMatchGroup,
     EntityStrategyGroup,
@@ -14,29 +15,30 @@ from api.entity_matching.models import (
 )
 
 MAX_CANDIDATES_PER_STRATEGY = 5
-MIN_CANDIDATE_SCORE = 0.65
 
 StrategyKey = tuple[ExtractionMethod, MatchMethod, MatchSource]
 
 
 def filter_entity_matches(
-    groups: Sequence[EntityMatchGroup], query: str
+    groups: Sequence[EntityMatchGroup], query: str, cutoffs: MatchCutoffs
 ) -> list[EntityStrategyGroup]:
     """Dedupe, keep the top candidates per strategy, then drop low scores.
 
     A strategy is one extraction/matcher/source path pooled across fragments.
-    Short queries keep fewer candidates: one per query word, up to five.
+    Short queries keep fewer candidates: one per query word, up to five. Each
+    matcher is held to its own cutoff, since their scores are not comparable.
     """
     limit = candidate_limit(query)
     filtered: list[EntityStrategyGroup] = []
     for (extraction, method, source), candidates in _pool_by_strategy(groups).items():
         top = _dedupe_by_text(candidates)[:limit]
+        cutoff = cutoffs.for_method(method)
         filtered.append(
             EntityStrategyGroup(
                 extraction_method=extraction,
                 match_method=method,
                 source=source,
-                matches=[match for match in top if match.score >= MIN_CANDIDATE_SCORE],
+                matches=[match for match in top if match.score >= cutoff],
             )
         )
     return filtered

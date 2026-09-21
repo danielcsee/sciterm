@@ -37,6 +37,7 @@ Declared in `requirements.txt`:
 - **sentence-transformers** — local chunk embeddings (BAAI/bge-base-en-v1.5)
 - **spaCy** / **en_core_web_sm** — noun-phrase extraction for entity candidates
 - **openai** — intent routing for chat queries (needs `OPENAI_API_KEY`)
+- **tomli** — reads entity-match cutoffs on Python < 3.11 (stdlib `tomllib` after)
 
 Postgres and two Redis instances — broker and document cache — run in Docker
 (`docker-compose.yml` at the root).

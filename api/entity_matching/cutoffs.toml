@@ -1,0 +1,13 @@
+# Minimum score a filtered entity candidate needs, per matcher. Read once at
+# API startup; restart the server after editing.
+#
+# The two scores are on different scales, so each gets its own cutoff.
+
+# Normalised edit similarity (1 - levenshtein / longer length) of trigram
+# candidates. 0.8 allows roughly one wrong letter in five: "osteoperosis"
+# scores 0.917 against Osteoporosis, while its runner-up, Osteophyte, scores 0.5.
+trigram = 0.8
+
+# Cosine similarity of bge-base-en-v1.5 vectors. Unchanged from the single
+# cutoff that preceded this file.
+embedding = 0.65

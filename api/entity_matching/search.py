@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from api.db.models import Entity, EntityMentionEmbedding, PaperEntityMention
 from api.entity_matching.extraction import QueryFragment
+from api.entity_matching.rescoring import rescore_by_edit_distance
 from api.entity_matching.models import (
     EntityMatch,
     EntityMatchGroup,
@@ -45,16 +46,16 @@ class EntityMatchManager:
             score=round(float(row.score), 6),
         )
 
-    def _unique_matches(self, rows: Sequence[object]) -> list[EntityMatch]:
+    def _unique_matches(self, candidates: Sequence[EntityMatch]) -> list[EntityMatch]:
         """Collapse repeated occurrences without disturbing score order."""
         matches: list[EntityMatch] = []
         seen: set[tuple[int, str]] = set()
-        for row in rows:
-            key = (row.entity_id, row.matched_text.casefold())
+        for candidate in candidates:
+            key = (candidate.entity_id, candidate.matched_text.casefold())
             if key in seen:
                 continue
             seen.add(key)
-            matches.append(self._match(row))
+            matches.append(candidate)
             if len(matches) == self._top_k:
                 break
         return matches
@@ -97,7 +98,10 @@ class EntityMatchManager:
             .order_by(distance)
             .limit(self._top_k if source == "entity_name" else self._top_k * 10)
         ).all()
-        return self._unique_matches(rows)
+        # Trigram similarity finds typos but scores them harshly; rank by edit
+        # distance before the top-k cut so the cut uses the better score.
+        matches = rescore_by_edit_distance(fragment.text, [self._match(row) for row in rows])
+        return self._unique_matches(matches)
 
     def _embedding_matches(
         self,
@@ -151,7 +155,7 @@ class EntityMatchManager:
             .order_by(distance)
             .limit(self._top_k if source == "entity_name" else self._top_k * 10)
         ).all()
-        return self._unique_matches(rows)
+        return self._unique_matches([self._match(row) for row in rows])
 
     def search(
         self,
