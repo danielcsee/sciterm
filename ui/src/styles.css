@@ -1820,12 +1820,12 @@ body {
 
 .group-results-gutter .group-button { padding-block: 8px; }
 
-@container (min-width: 1180px) {
+@container (min-width: 1100px) {
   .group-results-gutter {
     position: absolute;
     top: 0;
     /* Just past the right edge of the centred 768px results column. */
-    left: calc(50% + 384px + 24px);
+    left: calc(50% + 384px + 16px);
     width: auto;
     max-width: none;
     margin: 0;
