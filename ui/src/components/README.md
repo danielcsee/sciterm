@@ -180,6 +180,11 @@ lives in `nextTrackedPapers`, split out of the hook so it can be tested alone.
 
 Opens a paper in a background tab. A **sibling** of the card, never a child.
 
+## `OutgoingArrowIcon.tsx`
+
+The square-and-arrow glyph on `OpenInTabButton`, shared with the group tile's
+Search button so both read as "go to this".
+
 ## The access-code gate
 
 `ChatWindow`, `SearchPubTator` and `PaperExplorer` call `useAuth()` directly

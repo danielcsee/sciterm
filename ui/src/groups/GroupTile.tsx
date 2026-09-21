@@ -1,10 +1,11 @@
 import { useLayoutEffect, useRef, useState, type MouseEvent } from 'react'
 import EntityChip from '../components/EntityChip'
+import OutgoingArrowIcon from '../components/OutgoingArrowIcon'
 import type { EntityGroup } from './api'
 
 interface Props {
   group: EntityGroup
-  /** Searches for the group's papers: a click anywhere on the tile, or Search. */
+  /** Searches for the group's papers: a click anywhere on the tile, or the arrow. */
   onSearch: () => void
   onEdit: () => void
 }
@@ -36,12 +37,12 @@ export default function GroupTile({ group, onSearch, onEdit }: Props) {
         <span className="group-tile-name">{group.name}</span>
         <button
           type="button"
-          className="group-tile-edit"
-          onClick={(event) => runAlone(event, onEdit)}
-          aria-label={`Edit ${group.name}`}
-          title={`Edit ${group.name}`}
+          className="group-tile-search"
+          onClick={(event) => runAlone(event, onSearch)}
+          aria-label={`Search papers in ${group.name}`}
+          title={`Search papers in ${group.name}`}
         >
-          Edit
+          <OutgoingArrowIcon />
         </button>
       </span>
       <span className="group-tile-chips" ref={chipsRef}>
@@ -61,11 +62,12 @@ export default function GroupTile({ group, onSearch, onEdit }: Props) {
         </span>
         <button
           type="button"
-          className="group-tile-search"
-          onClick={(event) => runAlone(event, onSearch)}
-          aria-label={`Search papers in ${group.name}`}
+          className="group-tile-edit"
+          onClick={(event) => runAlone(event, onEdit)}
+          aria-label={`Edit ${group.name}`}
+          title={`Edit ${group.name}`}
         >
-          Search
+          Edit
         </button>
       </span>
     </div>

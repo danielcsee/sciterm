@@ -36,7 +36,7 @@ and retries once through `/auth/refresh` on a 401.
 
 **`types.ts`** — shared UI types. API payload types live in `api.ts`.
 
-**`groups/`** — the My Groups page: saved entity groups, the type-ahead that
+**`groups/`** — the Smart Groups page: saved entity groups, the type-ahead that
 builds them, and their `/groups` API client. See its [README](groups).
 
 **`auth/`** — the access-code gate: token store, `useAuth()`, and the modal.
