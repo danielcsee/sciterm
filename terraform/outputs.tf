@@ -71,11 +71,6 @@ output "worker_release_desired_count" {
   value = var.worker_desired_count
 }
 
-output "neo4j_private_ip" {
-  description = "Reachable from the worker only. Use Session Manager to get a shell on the host."
-  value       = aws_instance.neo4j.private_ip
-}
-
 output "budget_shutdown_latch" {
   description = "Set this SSM parameter to false before deliberately restarting an app stopped by the budget guardrail."
   value       = aws_ssm_parameter.budget_shutdown_latch.name

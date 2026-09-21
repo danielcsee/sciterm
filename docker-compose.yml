@@ -19,28 +19,6 @@ services:
       timeout: 5s
       retries: 20
 
-  neo4j:
-    image: neo4j:5.26-community
-    container_name: sciterm-neo4j
-    environment:
-      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/sciterm_dev_pw}
-      # GDS supplies PageRank / personalized PageRank for the ranking layer.
-      NEO4J_PLUGINS: '["graph-data-science"]'
-      NEO4J_dbms_security_procedures_unrestricted: gds.*
-      NEO4J_dbms_security_procedures_allowlist: gds.*
-    ports:
-      - "${NEO4J_HTTP_PORT:-7474}:7474"
-      - "${NEO4J_BOLT_PORT:-7687}:7687"
-    volumes:
-      - neo4j_data:/data
-      - neo4j_logs:/logs
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 60s
-
   redis-celery-broker:
     image: redis:7-alpine
     container_name: sciterm-redis-celery-broker
@@ -94,7 +72,6 @@ services:
     container_name: sciterm-api
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-sciterm}:${POSTGRES_PASSWORD:-sciterm}@postgres:5432/${POSTGRES_DB:-sciterm}
-      NEO4J_URI: bolt://neo4j:7687
       CELERY_BROKER_URL: redis://redis-celery-broker:6379/0
       CELERY_RESULT_BACKEND: redis://redis-celery-broker:6379/1
       REDIS_CACHE_URL: redis://redis-cache:6379/0
@@ -107,8 +84,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      neo4j:
-        condition: service_healthy
       redis-celery-broker:
         condition: service_healthy
       redis-cache:
@@ -116,5 +91,3 @@ services:
 
 volumes:
   postgres_data:
-  neo4j_data:
-  neo4j_logs:

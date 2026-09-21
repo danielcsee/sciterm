@@ -3,7 +3,7 @@
 Everything here runs on an in-memory `PaperResponse`, before anything touches
 Postgres. These are the rules that decide *whether a concept is admitted at
 all* and under *which* identifier, so a regression here is silent: the import
-still succeeds, and the graph quietly grows a duplicate or loses a row.
+still succeeds, and the corpus quietly grows a duplicate or loses a row.
 
 The functions that take a `Session` are not covered here. They need a live
 database and belong in an integration suite.
@@ -78,11 +78,10 @@ def test_derive_state_reports_failure_before_success() -> None:
         ({"ingest": "pending", "embed": "pending"}, "queued"),
         ({"ingest": "running"}, "started"),
         ({"ingest": "done"}, "started"),
-        ({"ingest": "done", "embed": "done"}, "started"),
-        ({"ingest": "done", "embed": "done", FINAL_STAGE: "done"}, "success"),
+        ({"ingest": "done", "embed": "done"}, "success"),
         ({"ingest": "failed"}, "error"),
-        # Failure wins even when every other stage, including the last, is done.
-        ({"ingest": "done", "embed": "failed", FINAL_STAGE: "done"}, "error"),
+        # Failure wins even when the final stage is done.
+        ({"ingest": "failed", FINAL_STAGE: "done"}, "error"),
         ({FINAL_STAGE: "failed"}, "error"),
     ]
 
@@ -91,8 +90,8 @@ def test_derive_state_reports_failure_before_success() -> None:
 
 
 def test_derive_state_requires_the_final_stage_for_success() -> None:
-    """A paper is not 'imported' until it is in the graph."""
-    assert derive_state({"ingest": "done", "embed": "done"}) == "started"
+    """A paper is not imported until its embeddings are complete."""
+    assert derive_state({"ingest": "done"}) == "started"
     assert derive_state({FINAL_STAGE: "done"}) == "success"
 
 

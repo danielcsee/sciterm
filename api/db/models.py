@@ -352,20 +352,15 @@ class PaperStageRun(Base):
 
     __tablename__ = "paper_stage_runs"
 
-    #: One entry per Celery task in the chain, plus `graph` for the Neo4j step
-    #: that does not exist yet — allowed now so adding it needs no migration.
-    STAGES = ("ingest", "embed", "graph")
+    #: One entry per Celery task in the import chain.
+    STAGES = ("ingest", "embed")
     STATUSES = ("pending", "running", "done", "failed", "skipped")
 
     #: Completing this stage is what "successfully imported" means. Lives here
     #: rather than in one package because ingestion writes it and corpus reads
     #: it, and the two must not drift.
     #:
-    #: "graph", not "embed": work built on the knowledge graph has to be able to
-    #: assume a paper in the corpus is in the graph. The cost is that a Neo4j
-    #: outage keeps newly imported papers out of search until it clears, even
-    #: though their text and vectors are already stored.
-    FINAL_STAGE = "graph"
+    FINAL_STAGE = "embed"
 
     paper_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("papers.id", ondelete="CASCADE"), primary_key=True
@@ -381,7 +376,7 @@ class PaperStageRun(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "stage in ('ingest','embed','graph')",
+            "stage in ('ingest','embed')",
             name="ck_stage_runs_stage",
         ),
         CheckConstraint(

@@ -18,15 +18,9 @@ class Settings(BaseSettings):
     # Where the compiled React bundle lives. The Docker image overrides this.
     sciterm_ui_dist: Path = REPO_ROOT / "ui" / "dist"
 
-    # Datastore connections, so the image and the host process read their
-    # addresses from one place.
+    # Datastore connection, so the image and the host process read its address
+    # from one place.
     database_url: str = "postgresql://sciterm:sciterm@localhost:5432/sciterm"
-    neo4j_uri: str = "bolt://localhost:7687"
-    #: The same "user/password" string the Neo4j container reads, so the server
-    #: and its clients cannot drift apart on credentials.
-    neo4j_auth: str = "neo4j/sciterm_dev_pw"
-    #: Community edition serves exactly one user database, named "neo4j".
-    neo4j_database: str = "neo4j"
 
     # --- NCBI ---
     pubtator_base_url: str = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api"
@@ -101,13 +95,6 @@ class Settings(BaseSettings):
     # `api.auth.config.AuthSettings`, so the Celery worker -- which parses
     # untrusted PubTator documents and must never be able to mint admin tokens
     # -- can run without JWT_SECRET in its environment at all.
-
-    @property
-    def neo4j_credentials(self) -> tuple[str, str]:
-        """`neo4j_auth` split into the (user, password) pair the driver wants."""
-        user, _, password = self.neo4j_auth.partition("/")
-        return user, password
-
 
 @lru_cache
 def get_settings() -> Settings:

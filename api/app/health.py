@@ -75,9 +75,8 @@ def health() -> HealthResponse:
 def ready(response: Response) -> ReadinessResponse:
     """Check the dependencies this process actually uses, and report each.
 
-    The API needs Postgres and the Celery broker; it does not touch Neo4j, so
-    neither does this. A green readiness check here says nothing about whether
-    the worker can reach the graph -- only an import can.
+    The API needs Postgres and the Celery broker, so those are the dependencies
+    checked here.
     """
     checks: Dict[str, str] = {}
 

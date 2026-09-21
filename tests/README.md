@@ -1,7 +1,7 @@
 # tests
 
-Unit tests for the `api` package. Pure-logic only: no Postgres, no Neo4j, no
-Redis, and no network. Anything needing a live service belongs in an
+Unit tests for the `api` package. Pure-logic only: no Postgres, Redis, or
+network. Anything needing a live service belongs in an
 integration suite instead, and is recorded in Testledger as a skip disposition
 rather than left as a silent gap.
 
@@ -11,7 +11,6 @@ One file per module under test, named for it:
 
 | File | Covers |
 | --- | --- |
-| `test_graph_keys.py` | `api/graph/keys.py` — node identity keys and label validation |
 | `test_chunking.py` | `api/ingestion/chunking.py` — passage-to-chunk conversion and offsets |
 | `test_auth_tokens.py` | `api/auth/tokens.py` — JWT access tokens and opaque refresh tokens |
 | `test_auth_passwords.py` | `api/auth/passwords.py` — PBKDF2 hashing and verification |

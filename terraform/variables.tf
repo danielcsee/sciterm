@@ -106,22 +106,6 @@ variable "cache_node_type" {
   default = "cache.t4g.micro"
 }
 
-variable "neo4j_instance_type" {
-  type    = string
-  default = "t4g.small"
-}
-
-variable "neo4j_root_volume_gb" {
-  type        = number
-  default     = 30
-  description = <<-EOT
-    Neo4j lives on the root volume, so replacing the instance loses the graph.
-    That is acceptable here: the graph is rebuildable from Postgres with
-    scripts/build-graph.sh, which makes it a cache rather than a source of
-    truth. Give it its own EBS volume if that ever stops being true.
-  EOT
-}
-
 # --- lifecycle ------------------------------------------------------------
 
 variable "destroy_friendly" {

@@ -19,7 +19,7 @@ image_tag = "a1b2c3d"
 # worker_desired_count = 1
 
 # Account-wide budget notifications. At 100% of the configured monthly budget,
-# the shutdown automation scales both ECS services to zero and stops RDS + Neo4j.
+# the shutdown automation scales both ECS services to zero and stops RDS.
 budget_alert_email  = "you@example.com"
 # monthly_budget_limit = 300
 
