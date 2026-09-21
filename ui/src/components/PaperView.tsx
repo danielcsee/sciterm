@@ -7,7 +7,9 @@ import {
   type PaperDetail,
   type PaperEntity,
 } from '../api'
+import type { PaperFocus } from '../types'
 import { toSegments, type Segment } from '../highlight'
+import { sectionLabel } from '../sections'
 import PaperEntities from './PaperEntities'
 
 interface Props {
@@ -20,26 +22,27 @@ interface Props {
   onLoaded?: (paper: PaperDetail) => void
   /** The paper is gone (404), so its tab should not outlive this session. */
   onMissing?: (paperId: number) => void
+  /** Scroll to this paragraph and highlight these entities once loaded. */
+  focus?: PaperFocus | null
+  /** The focus has been applied, so the caller can let go of it. */
+  onFocusApplied?: () => void
 }
 
-/** Human labels for PubTator's section codes, for the section rules. */
-const SECTION_LABELS: Record<string, string> = {
-  ABSTRACT: 'Abstract',
-  INTRO: 'Introduction',
-  METHODS: 'Methods',
-  RESULTS: 'Results',
-  DISCUSS: 'Discussion',
-  CONCL: 'Conclusion',
-  FIG: 'Figures',
-  TABLE: 'Tables',
-  SUPPL: 'Supplementary',
-  APPENDIX: 'Appendix',
-  CASE: 'Case',
-  ABBR: 'Abbreviations',
-  AUTH_CONT: 'Author contributions',
-  COMP_INT: 'Competing interests',
-  ACK_FUND: 'Acknowledgements',
-  KEYWORD: 'Keywords',
+/**
+ * Index of the first mark in or after paragraph `ordinal`, in the document
+ * order the marks are numbered in; 0 when none follows.
+ */
+function firstMarkFrom(
+  paragraphs: Map<number, { firstMark: number }>,
+  ordinal: number,
+): number {
+  let best: { ordinal: number; firstMark: number } | null = null
+  for (const [candidate, entry] of paragraphs) {
+    if (candidate >= ordinal && (best === null || candidate < best.ordinal)) {
+      best = { ordinal: candidate, firstMark: entry.firstMark }
+    }
+  }
+  return best?.firstMark ?? 0
 }
 
 function formatReference(reference: {
@@ -62,11 +65,22 @@ export default function PaperView({
   onViewImportedReferences,
   onLoaded,
   onMissing,
+  focus,
+  onFocusApplied,
 }: Props) {
   const [paper, setPaper] = useState<PaperDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selected, setSelected] = useState<PaperEntity | null>(null)
+  // Highlighted entities: one clicked pill, or every query entity of a citation.
+  const [selected, setSelected] = useState<PaperEntity[]>([])
+  // The paper's entities, reported by PaperEntities; null until loaded. A
+  // citation's entity ids resolve to spans through this.
+  const [entities, setEntities] = useState<PaperEntity[] | null>(null)
+  // The cited paragraph, outlined until the reader picks something else.
+  const [focusedOrdinal, setFocusedOrdinal] = useState<number | null>(null)
+  // Handed from the focus effect to the layout effect below, which scrolls
+  // there instead of to the first mark once the new marks are rendered.
+  const pendingOrdinal = useRef<number | null>(null)
   // Where each mark sits in the document, as a fraction of scrollable height.
   // Measured from the DOM rather than derived from offsets: only the rendered
   // marks are navigable, and only layout knows how tall a paragraph became.
@@ -79,7 +93,7 @@ export default function PaperView({
   // them inside every paragraph on every render.
   const spansByOrdinal = useMemo(() => {
     const byOrdinal = new Map<number, EntitySpan[]>()
-    for (const span of selected?.spans ?? []) {
+    for (const span of selected.flatMap((entity) => entity.spans)) {
       const bucket = byOrdinal.get(span.ordinal)
       if (bucket) bucket.push(span)
       else byOrdinal.set(span.ordinal, [span])
@@ -131,8 +145,32 @@ export default function PaperView({
   // A different paper starts at its own top, not where the last one was left.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 })
-    setSelected(null)
+    setSelected([])
+    setFocusedOrdinal(null)
   }, [paperId])
+
+  // Apply a citation once both the paper and its entities are in: select the
+  // query's entities and queue the scroll, which the layout effect performs
+  // after the marks exist. A fresh `focus` object re-applies, so clicking the
+  // same citation again scrolls back to it.
+  useEffect(() => {
+    if (!focus || !paper || entities === null) return
+    const wanted = new Set(focus.entityIds)
+    pendingOrdinal.current = focus.ordinal
+    setFocusedOrdinal(focus.ordinal)
+    setSelected(entities.filter((entity) => wanted.has(entity.entity_id)))
+    onFocusApplied?.()
+  }, [focus, paper, entities, onFocusApplied])
+
+  const selectEntity = useCallback((entity: PaperEntity | null) => {
+    setFocusedOrdinal(null)
+    setSelected(entity ? [entity] : [])
+  }, [])
+
+  const clearHighlight = useCallback(() => {
+    setFocusedOrdinal(null)
+    setSelected([])
+  }, [])
 
   const marksIn = (container: HTMLElement) =>
     Array.from(container.querySelectorAll<HTMLElement>('.entity-mark'))
@@ -164,26 +202,34 @@ export default function PaperView({
     )
   }, [])
 
-  // Measure the marks, then take the reader to the first one.
+  // Measure the marks, then take the reader to the cited paragraph if one is
+  // pending, or else to the first mark.
   //
   // Instant, not smooth. The first mention can be 4,000px down, which is a long
   // disorienting slide rather than a helpful one — and `behavior: 'smooth'`
   // measured as a no-op here, so it would have silently done nothing at all.
   useLayoutEffect(() => {
-    if (!selected) {
-      setMarkFractions([])
-      setCurrent(0)
+    measureMarks()
+    const target = pendingOrdinal.current
+    pendingOrdinal.current = null
+    if (target !== null) {
+      setCurrent(firstMarkFrom(paragraphSegments, target))
+      scrollRef.current
+        ?.querySelector(`[data-ordinal="${target}"]`)
+        ?.scrollIntoView({ block: 'start' })
       return
     }
-    measureMarks()
     setCurrent(0)
+    if (selected.length === 0) return
     scrollRef.current?.querySelector('.entity-mark')?.scrollIntoView({ block: 'center' })
+    // paragraphSegments follows `selected`; it is read here, never a trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, measureMarks])
 
   // Reflow moves every mark, so the ticks would otherwise point at where the
   // text used to be.
   useEffect(() => {
-    if (!selected) return
+    if (selected.length === 0) return
     const onResize = () => measureMarks()
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
@@ -191,13 +237,13 @@ export default function PaperView({
 
   // Escape clears the highlight, the usual way out of a mode.
   useEffect(() => {
-    if (!selected) return
+    if (selected.length === 0 && focusedOrdinal === null) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelected(null)
+      if (event.key === 'Escape') clearHighlight()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selected])
+  }, [selected, focusedOrdinal, clearHighlight])
 
   if (loading) {
     return (
@@ -237,10 +283,11 @@ export default function PaperView({
     <section className="paper paper-with-entities" aria-label={paper.title ?? 'Paper'}>
       <PaperEntities
         paperId={paper.paper_id}
-        selectedId={selected?.entity_id ?? null}
-        onSelect={setSelected}
+        selectedIds={new Set(selected.map((entity) => entity.entity_id))}
+        onSelect={selectEntity}
+        onEntitiesLoaded={setEntities}
         nav={
-          selected
+          selected.length > 0
             ? {
                 current: markFractions.length === 0 ? 0 : current + 1,
                 total: markFractions.length,
@@ -303,7 +350,7 @@ export default function PaperView({
             const startsSection =
               paragraph.section_type !== null && paragraph.section_type !== lastSection
             const label = startsSection
-              ? SECTION_LABELS[paragraph.section_type as string] ?? paragraph.section_type
+              ? sectionLabel(paragraph.section_type as string)
               : null
             lastSection = paragraph.section_type ?? lastSection
 
@@ -327,7 +374,13 @@ export default function PaperView({
               : paragraph.text
 
             return (
-              <div key={paragraph.ordinal}>
+              <div
+                key={paragraph.ordinal}
+                data-ordinal={paragraph.ordinal}
+                className={
+                  paragraph.ordinal === focusedOrdinal ? 'paper-doc-focus' : undefined
+                }
+              >
                 {label && <h2 className="paper-doc-section">{label}</h2>}
                 {isHeading(paragraph) ? (
                   <h3 className="paper-doc-heading">{body}</h3>

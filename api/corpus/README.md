@@ -46,10 +46,11 @@ gate.
 the query's fragments and filters them. It then asks `api.llm` which tool the
 query calls for and which candidates it names. `paper_search` and
 `paper_analysis` both run `api.paper_search`, and `no_match` returns no
-papers. When routing is unconfigured or fails, the search still runs on noun
+papers. `paper_analysis` then fills `analysis` via `api.paper_analysis`: a
+cited answer, and the paragraphs it cites. When routing is unconfigured or fails, the search still runs on noun
 phrases and `intent_error` explains what happened. The OpenAI call and the
 paper search use separate DB sessions, so no connection waits on OpenAI.
 
 ## Dependencies
 
-`api.db`, `api.pb_client`, `api.ncbi`, `api.ingestion.embedding`, `api.entity_matching`, `api.llm`, `api.paper_search`, `fastapi`, `pydantic`.
+`api.db`, `api.pb_client`, `api.ncbi`, `api.ingestion.embedding`, `api.entity_matching`, `api.llm`, `api.paper_search`, `api.paper_analysis`, `fastapi`, `pydantic`.

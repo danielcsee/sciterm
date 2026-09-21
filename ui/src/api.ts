@@ -417,6 +417,33 @@ export interface RagSearchResponse {
   /** The tool OpenAI routed the query to; null when routing is off or failed. */
   intent: IntentResult | null
   intent_error: string | null
+  /** `paper_analysis` only: the cited answer and its paragraphs. */
+  analysis: PaperAnalysisResult | null
+}
+
+/** One numbered paragraph an analysis may cite as `[number]`. */
+export interface Citation {
+  number: number
+  paper_id: number
+  chunk_id: number
+  /** `PaperParagraph.ordinal`, for scrolling the opened paper to it. */
+  ordinal: number
+  section_type: string | null
+  text: string
+  /** "most mentions" or "broadest coverage". */
+  selected_by: string
+}
+
+export interface PaperAnalysisResult {
+  /** Prose citing paragraphs as `[n]`; null when generation failed. */
+  answer: string | null
+  /** Grouped by paper in rank order, reading order within a paper. */
+  citations: Citation[]
+  /** The query's entities, highlighted when a citation is opened. */
+  entity_ids: number[]
+  duplicates_rejected: number
+  model: string | null
+  error: string | null
 }
 
 export type IntentToolName = 'paper_search' | 'paper_analysis' | 'no_match'

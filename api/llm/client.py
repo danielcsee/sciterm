@@ -72,6 +72,27 @@ class LlmClient:
             raise LlmError(f"OpenAI request failed: {exc}") from exc
         return _single_tool_call(response)
 
+    def write_text(self, instructions: str, user_input: str, *, timeout: float) -> str:
+        """Free-text answer, with its own timeout and no retry.
+
+        Generation takes far longer than routing, so it gets a longer budget —
+        and a retry would double a wait the reader is already sitting through.
+        """
+        try:
+            response = self._client.with_options(timeout=timeout, max_retries=0).responses.create(
+                model=self._model,
+                instructions=instructions,
+                input=user_input,
+                store=False,
+                **self._reasoning_options(),
+            )
+        except openai.OpenAIError as exc:
+            raise LlmError(f"OpenAI request failed: {exc}") from exc
+        answer = response.output_text.strip()
+        if not answer:
+            raise LlmError("OpenAI returned an empty answer")
+        return answer
+
     def _reasoning_options(self) -> dict[str, object]:
         if self._reasoning_effort is None:
             return {}

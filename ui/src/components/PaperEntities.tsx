@@ -12,10 +12,12 @@ export interface OccurrenceNav {
 
 interface Props {
   paperId: number
-  /** The entity whose mentions are highlighted, if any. */
-  selectedId: number | null
+  /** Entities whose mentions are highlighted: one pill, or a citation's set. */
+  selectedIds: ReadonlySet<number>
   /** Null clears the selection. */
   onSelect: (entity: PaperEntity | null) => void
+  /** The entity list, once loaded; empty if it could not be. */
+  onEntitiesLoaded?: (entities: PaperEntity[]) => void
   /** Present only while an entity is selected. */
   nav: OccurrenceNav | null
 }
@@ -37,7 +39,13 @@ const TIP_GAP = 8
  * tooltip would be clipped by that scroll container for every pill near the
  * top edge — which is where the most-mentioned entities are.
  */
-export default function PaperEntities({ paperId, selectedId, onSelect, nav }: Props) {
+export default function PaperEntities({
+  paperId,
+  selectedIds,
+  onSelect,
+  onEntitiesLoaded,
+  nav,
+}: Props) {
   const [entities, setEntities] = useState<PaperEntity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,15 +60,21 @@ export default function PaperEntities({ paperId, selectedId, onSelect, nav }: Pr
     setError(null)
     setTip(null)
     fetchPaperEntities(paperId, controller.signal)
-      .then((list) => setEntities(list.entities))
+      .then((list) => {
+        setEntities(list.entities)
+        onEntitiesLoaded?.(list.entities)
+      })
       .catch((err: unknown) => {
         if ((err as Error)?.name === 'AbortError') return
         setError(err instanceof ApiError ? err.message : 'Could not load entities.')
+        onEntitiesLoaded?.([])
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
+    // onEntitiesLoaded is a fresh closure each render; re-fetching on it would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paperId])
 
   // A tooltip pinned to the viewport would otherwise hang in place while the
@@ -159,25 +173,26 @@ export default function PaperEntities({ paperId, selectedId, onSelect, nav }: Pr
       )}
 
       <div className="paper-entities-list" ref={listRef}>
-        {entities.map((entity) => (
-          <button
-            key={entity.entity_id}
-            type="button"
-            className={`entity-pill${
-              entity.entity_id === selectedId ? ' entity-pill-selected' : ''
-            }`}
-            aria-pressed={entity.entity_id === selectedId}
-            // Clicking the selected pill clears it, so the highlight has an
-            // obvious way out besides Escape.
-            onClick={() => onSelect(entity.entity_id === selectedId ? null : entity)}
-            onMouseEnter={(event) => show(entity, event.currentTarget)}
-            onMouseLeave={() => setTip(null)}
-            onFocus={(event) => show(entity, event.currentTarget)}
-            onBlur={() => setTip(null)}
-          >
-            {entityLabel(entity)}
-          </button>
-        ))}
+        {entities.map((entity) => {
+          const isSelected = selectedIds.has(entity.entity_id)
+          return (
+            <button
+              key={entity.entity_id}
+              type="button"
+              className={`entity-pill${isSelected ? ' entity-pill-selected' : ''}`}
+              aria-pressed={isSelected}
+              // Clicking a selected pill clears the highlight, so it has an
+              // obvious way out besides Escape.
+              onClick={() => onSelect(isSelected ? null : entity)}
+              onMouseEnter={(event) => show(entity, event.currentTarget)}
+              onMouseLeave={() => setTip(null)}
+              onFocus={(event) => show(entity, event.currentTarget)}
+              onBlur={() => setTip(null)}
+            >
+              {entityLabel(entity)}
+            </button>
+          )
+        })}
       </div>
 
       {tip && (

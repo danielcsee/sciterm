@@ -152,7 +152,7 @@ id constraints.
 Base: `https://api.openai.com/v1` (the `openai` SDK's default)
 Client: [`api/llm/client.py`](api/llm/client.py) → called from `/corpus/rag_search`
 
-### `POST /responses`
+### `POST /responses` — intent routing
 
 One call per chat query, via `client.responses.parse`. Authenticated with
 `OPENAI_API_KEY`; unset, the call is skipped and chat runs without routing.
@@ -171,3 +171,20 @@ Response: one `function_call` item whose arguments carry
 `entities: [{entity_id, phrase}]` (plus `reason` for `no_match`). Ids that were
 not offered as candidates are dropped. Measured at ~3–5s per call with
 `gpt-5-mini` at `low` effort. Timeout `OPENAI_TIMEOUT_SECONDS` (20s), one retry.
+
+### `POST /responses` — paper analysis answer
+
+A second call, only for queries routed to `paper_analysis` that found papers,
+via `client.responses.create`. Plain text out; no tools.
+
+| Param | Value |
+|---|---|
+| `model` | `OPENAI_MODEL` |
+| `instructions` | The answer prompt in `api/llm/analysis.py` |
+| `input` | JSON: `{question, passages: [{number, paper, year, section, text}]}` — up to ~15 paragraphs |
+| `reasoning.effort` | `OPENAI_REASONING_EFFORT`; omitted when unset |
+| `store` | `false` |
+
+Response: `output_text`, prose citing passages as `[n]`; empty is an error.
+Timeout `OPENAI_ANALYSIS_TIMEOUT_SECONDS` (60s), **no retry**. Measured at ~12s
+for 10 passages with `gpt-5-mini` at `low` effort (~17s for the whole request).

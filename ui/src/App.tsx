@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ApiError, ragSearch, type PaperDetail, type RagSearchResponse } from './api'
+import {
+  ApiError,
+  ragSearch,
+  type Citation,
+  type PaperDetail,
+  type RagSearchResponse,
+} from './api'
 import { useAuth } from './auth'
 import ChatWindow from './components/ChatWindow'
 import CorpusView from './components/CorpusView'
@@ -19,10 +25,15 @@ import {
   type PaperTab,
   type View,
 } from './navigation'
-import type { Message } from './types'
+import type { Message, PaperFocus } from './types'
 
-/** For now the answer is just the routed tool's name, or why there is none. */
+/**
+ * The message text: an analysis's failure when it has no answer to show, or
+ * else the routed tool's name, or why there is none.
+ */
 function intentText(response: RagSearchResponse): string {
+  const analysis = response.analysis
+  if (analysis && !analysis.answer) return `Could not write an answer: ${analysis.error}`
   if (response.intent) return `Tool: ${response.intent.tool}`
   return `Tool: none (${response.intent_error ?? 'intent routing did not run'})`
 }
@@ -51,6 +62,10 @@ export default function App() {
   // but it must not come back after a reload.
   const [missing, setMissing] = useState<ReadonlySet<number>>(new Set())
   const [view, setView] = useState<View>(() => pathToView(window.location.pathname))
+  // A cited paragraph to scroll to once its paper renders. Cleared as soon as
+  // PaperView applies it, so returning to the tab later does not jump back.
+  const [focus, setFocus] = useState<PaperFocus | null>(null)
+  const focusNonce = useRef(0)
   // Which paper's references the side panel is showing, if any.
   const [referencesFor, setReferencesFor] = useState<ReferenceTarget | null>(null)
 
@@ -125,6 +140,19 @@ export default function App() {
     navigate({ kind: 'paper', paperId })
   }
 
+  function openCitation(citation: Citation, entityIds: number[], title: string | null) {
+    focusNonce.current += 1
+    setFocus({
+      paperId: citation.paper_id,
+      ordinal: citation.ordinal,
+      entityIds,
+      nonce: focusNonce.current,
+    })
+    openPaper(citation.paper_id, title)
+  }
+
+  const clearFocus = useCallback(() => setFocus(null), [])
+
   /**
    * Queue a paper up without leaving the current view — no navigate, so the
    * visit stack and the URL are untouched and the reader keeps their place.
@@ -173,8 +201,8 @@ export default function App() {
   }, [])
 
   /**
-   * Ask the corpus. The answer is the tool OpenAI routed the query to, above
-   * the ranked evidence — no prose is generated yet.
+   * Ask the corpus. A `paper_analysis` query answers in prose with its
+   * citations; otherwise the answer is the routed tool above the ranked papers.
    *
    * The assistant message is appended immediately in a pending state and then
    * filled in, so the question and a spinner appear at once instead of the
@@ -202,6 +230,7 @@ export default function App() {
         text: intentText(response),
         // No search ran for `no_match`, so there is no result list to show.
         results: response.search_method ? response.papers : undefined,
+        analysis: response.analysis ?? undefined,
         papersConsidered: response.papers_considered,
         entityMatches: response.entity_matches,
         filteredEntityMatches: response.filtered_entity_matches,
@@ -215,6 +244,7 @@ export default function App() {
             ? err.message
             : 'Could not reach the search service.',
         results: undefined,
+        analysis: undefined,
         entityMatches: undefined,
         filteredEntityMatches: undefined,
         intentEntities: undefined,
@@ -273,6 +303,8 @@ export default function App() {
             }
             onLoaded={handleLoaded}
             onMissing={handleMissing}
+            focus={focus?.paperId === view.paperId ? focus : null}
+            onFocusApplied={clearFocus}
           />
         ) : view.kind === 'corpus' ? (
           <CorpusView
@@ -287,6 +319,9 @@ export default function App() {
             messages={messages}
             onSend={(text) => void handleSend(text)}
             onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
+            onOpenCitation={(citation, entityIds, title) =>
+              openCitation(citation, entityIds, truncateTitle(title, 200))
+            }
           />
         )}
         <PaperExplorer

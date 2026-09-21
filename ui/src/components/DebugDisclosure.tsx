@@ -4,6 +4,8 @@ interface Props {
   children: ReactNode
   /** Toggle text; nested disclosures name what they hold. */
   label?: string
+  /** Start open; the reader can still fold it away. */
+  defaultOpen?: boolean
 }
 
 /**
@@ -11,8 +13,8 @@ interface Props {
  * State is local so toggling never touches the message list — the chat's
  * auto-scroll watches `messages`, and a plain button scrolls nothing.
  */
-export default function DebugDisclosure({ children, label = 'Debug' }: Props) {
-  const [open, setOpen] = useState(false)
+export default function DebugDisclosure({ children, label = 'Debug', defaultOpen = false }: Props) {
+  const [open, setOpen] = useState(defaultOpen)
 
   return (
     <div className="debug-disclosure">

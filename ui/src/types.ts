@@ -1,4 +1,10 @@
-import type { EntityMatchGroup, EntityStrategyGroup, IntentEntity, SearchedPaper } from './api'
+import type {
+  EntityMatchGroup,
+  EntityStrategyGroup,
+  IntentEntity,
+  PaperAnalysisResult,
+  SearchedPaper,
+} from './api'
 
 export type Role = 'user' | 'assistant'
 
@@ -12,6 +18,8 @@ export interface Message {
   status?: MessageStatus
   /** Ranked papers backing an assistant answer. */
   results?: SearchedPaper[]
+  /** A `paper_analysis` answer; its citations then replace the result list. */
+  analysis?: PaperAnalysisResult
   /** How many papers matched any query term, before the top few were kept. */
   papersConsidered?: number
   /** Experimental entity candidates, kept grouped by discovery path. */
@@ -20,4 +28,13 @@ export interface Message {
   filteredEntityMatches?: EntityStrategyGroup[]
   /** Candidates OpenAI confirmed; undefined when intent routing did not run. */
   intentEntities?: IntentEntity[]
+}
+
+/** Open a paper at one cited paragraph, with the query's entities marked. */
+export interface PaperFocus {
+  paperId: number
+  ordinal: number
+  entityIds: number[]
+  /** Distinguishes a second click on the same citation, so it re-scrolls. */
+  nonce: number
 }

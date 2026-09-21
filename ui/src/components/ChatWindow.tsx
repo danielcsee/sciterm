@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth'
+import type { Citation } from '../api'
 import RagResults from './RagResults'
 import type { Message } from '../types'
+import AnalysisAnswer from './AnalysisAnswer'
+import CitationList from './CitationList'
 import EntityMatchResults from './EntityMatchResults'
 import DebugDisclosure from './DebugDisclosure'
 import IntentEntityList from './IntentEntityList'
@@ -19,9 +22,11 @@ interface Props {
   messages: Message[]
   onSend: (text: string) => void
   onOpenPaper: (paperId: number, title: string | null) => void
+  /** Open a cited paper at the paragraph, with `entityIds` highlighted. */
+  onOpenCitation: (citation: Citation, entityIds: number[], title: string | null) => void
 }
 
-export default function ChatWindow({ messages, onSend, onOpenPaper }: Props) {
+export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitation }: Props) {
   // Asking a question runs retrieval on the server, so the composer is a
   // gate. Locked it stays readable and clickable — clicking is what opens the
   // modal, which a `disabled` control could never do: disabled elements fire
@@ -50,6 +55,11 @@ export default function ChatWindow({ messages, onSend, onOpenPaper }: Props) {
     if (landingVisible) return
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, landingVisible])
+
+  function openCitation(message: Message, citation: Citation) {
+    const paper = message.results?.find((result) => result.paper_id === citation.paper_id)
+    onOpenCitation(citation, message.analysis?.entity_ids ?? [], paper?.title ?? null)
+  }
 
   /** The work, past the gate. Must not call `submit` — see below. */
   function send(text: string) {
@@ -109,8 +119,26 @@ export default function ChatWindow({ messages, onSend, onOpenPaper }: Props) {
                     </span>
                   ) : (
                     <>
-                      {message.text && <p className="rag-text">{message.text}</p>}
-                      {message.results && (
+                      {message.analysis?.answer ? (
+                        <AnalysisAnswer
+                          answer={message.analysis.answer}
+                          citations={message.analysis.citations}
+                          onOpenCitation={(citation) => openCitation(message, citation)}
+                        />
+                      ) : (
+                        message.text && <p className="rag-text">{message.text}</p>
+                      )}
+                      {message.analysis && message.analysis.citations.length > 0 && (
+                        <DebugDisclosure label="Citations" defaultOpen>
+                          <CitationList
+                            citations={message.analysis.citations}
+                            papers={message.results ?? []}
+                            onOpenPaper={onOpenPaper}
+                            onOpenCitation={(citation) => openCitation(message, citation)}
+                          />
+                        </DebugDisclosure>
+                      )}
+                      {message.results && !message.analysis && (
                         <RagResults
                           papers={message.results}
                           papersConsidered={message.papersConsidered ?? 0}

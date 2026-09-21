@@ -17,9 +17,27 @@ Candidates", which pool fragments per strategy and name each match's fragment.
 A third, "OpenAI Entities", renders `IntentEntityList`: the candidates OpenAI
 confirmed, each with the query phrase that named it.
 
+A `paper_analysis` answer renders as `AnalysisAnswer`, then a **Citations**
+disclosure (open by default) above Debug, in place of the result list.
+
+## `AnalysisAnswer.tsx`, `CitationList.tsx`, `CitationMarker.tsx`
+
+The answer's `[n]` become `CitationMarker`s; a number the response did not
+supply stays literal text. `CitationList` groups citations under their paper,
+one `PaperPreview` each, with a row per cited paragraph. A marker shows the
+whole paragraph in a fixed tooltip on hover or focus (placed like
+`PaperEntities`' tooltip), and a click opens the paper at that paragraph with
+the query's entities highlighted. Touch screens have no hover, so a tap opens
+the paper directly.
+
+## `PaperPreview.tsx`
+
+One chat result, the card plus the folded abstract, with the caller's evidence
+beneath. Shared by `RagResults` and `CitationList`.
+
 ## `DebugDisclosure.tsx`
 
-An inline toggle, labelled "Debug" unless `label` says otherwise, with a caret that rotates from right to down when
+An inline toggle, labelled "Debug" unless `label` says otherwise, closed unless `defaultOpen`, with a caret that rotates from right to down when
 open. Open/closed state is local, so toggling never re-runs `ChatWindow`'s
 auto-scroll (which watches `messages`) and the view stays put.
 
@@ -80,6 +98,11 @@ Labels prefer `entities.name`, falling back to the commonest surface form when
 that name is really the identifier. PubTator names no Species, so taxon 9685
 arrives called "9685"; `api.eu_client` resolves it to "domestic cat", and the
 fallback covers what E-utilities cannot name (Cellosaurus, OMIM, merged taxa).
+
+A citation opens `PaperView` with a `focus`: once the paper and entity list
+load, it selects every query entity at once, outlines the cited paragraph in
+the accent colour and scrolls it to the top, with the chevrons starting at the
+first mark there. App clears the focus as soon as it is applied.
 
 Clicking a pill highlights every occurrence of that entity in the text and
 scrolls the first into view; clicking it again, or Escape, clears it. The title

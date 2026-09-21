@@ -1,6 +1,6 @@
 import type { SearchedPaper } from '../api'
 import ExpandableText from './ExpandableText'
-import PaperCard from './PaperCard'
+import PaperPreview from './PaperPreview'
 
 interface Props {
   papers: SearchedPaper[]
@@ -44,37 +44,18 @@ export default function RagResults({ papers, papersConsidered, onOpenPaper }: Pr
       <ul className="rag-list">
         {papers.map((paper) => (
           <li key={paper.paper_id}>
-            <button
-              type="button"
-              className="chip chip-openable"
-              onClick={() => onOpenPaper(paper.paper_id, paper.title)}
-              title="Open paper"
-            >
-              <PaperCard
-                title={paper.title}
-                journal={paper.journal}
-                year={paper.pub_year}
-                pmid={paper.pmid}
-                pmcid={paper.pmcid}
-                extra={paperSummary(paper)}
-              />
-            </button>
-            {paper.abstract && (
-              <blockquote className="rag-quote">
-                <span className="rag-quote-section">ABSTRACT</span>
-                <ExpandableText text={paper.abstract} />
-              </blockquote>
-            )}
-            {paper.chunks.length > 0 && (
-              <blockquote className="rag-quote">
-                <span className="rag-quote-section">
-                  {['WHY IT WAS PICKED', paper.chunks[0].section_type]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-                <ExpandableText text={paper.chunks[0].text} />
-              </blockquote>
-            )}
+            <PaperPreview paper={paper} extra={paperSummary(paper)} onOpenPaper={onOpenPaper}>
+              {paper.chunks.length > 0 && (
+                <blockquote className="rag-quote">
+                  <span className="rag-quote-section">
+                    {['WHY IT WAS PICKED', paper.chunks[0].section_type]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                  <ExpandableText text={paper.chunks[0].text} />
+                </blockquote>
+              )}
+            </PaperPreview>
           </li>
         ))}
       </ul>

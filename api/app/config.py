@@ -74,6 +74,15 @@ class Settings(BaseSettings):
     #: of the corpus is too broad to count toward a paper's coverage.
     paper_search_max_term_fraction: float = 0.5
 
+    # --- Paper analysis (chat) ---
+    #: Paragraphs taken per paper for having the most query-entity mentions,
+    #: before the one extra paragraph chosen for breadth.
+    paper_analysis_dense_paragraphs: int = 2
+    #: Cosine similarity at or above which a paragraph is a near-copy of one
+    #: already kept. Measured: distinct findings in a shared template reach
+    #: 0.98, so anything lower rejects real evidence.
+    paper_analysis_duplicate_similarity: float = 0.985
+
     # --- Entity matching experiment ---
     #: Candidate count is applied independently to every extraction/matcher/
     #: source combination so the UI exposes all four experimental paths.
@@ -99,6 +108,9 @@ class Settings(BaseSettings):
     openai_reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = "low"
     #: Chat blocks on this call, so fail fast rather than hang the answer.
     openai_timeout_seconds: float = 20.0
+    #: Writing a cited answer from ~15 paragraphs takes far longer than
+    #: routing, and is not retried.
+    openai_analysis_timeout_seconds: float = 60.0
 
     # --- Environment ---
     #: "local" runs the app wide open, exactly as it behaved before auth
