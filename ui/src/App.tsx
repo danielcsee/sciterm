@@ -295,7 +295,7 @@ export default function App() {
             aria-current={view.kind === 'groups' ? 'page' : undefined}
             onClick={() => navigate(GROUPS)}
           >
-            My Groups
+            Smart Groups
           </button>
           {/* Only while locked. Once a code is accepted this disappears
               rather than turning into a "signed in" badge — there is no

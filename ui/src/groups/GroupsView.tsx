@@ -13,7 +13,7 @@ interface Props {
 }
 
 /**
- * The My Groups page: a builder for a new group, then every saved group as a
+ * The Smart Groups page: a builder for a new group, then every saved group as a
  * tile. Searching a group swaps the page for that group's paper results until
  * they are closed; the groups stay loaded underneath.
  */
@@ -52,10 +52,10 @@ export default function GroupsView({ onClose, onOpenPaper, onOpenPaperInBackgrou
   }
 
   return (
-    <section className="groups" aria-label="My Groups">
+    <section className="groups" aria-label="Smart Groups">
       <header className="groups-header">
         <div>
-          <h1 className="corpus-title">My Groups</h1>
+          <h1 className="corpus-title">Smart Groups</h1>
           {groups.length > 0 && (
             <p className="corpus-count">
               {groups.length} group{groups.length === 1 ? '' : 's'}
