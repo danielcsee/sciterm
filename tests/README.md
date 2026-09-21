@@ -21,6 +21,8 @@ One file per module under test, named for it:
 | `test_auth_throttle.py` | `api/auth/throttle.py` — the pre-authentication sliding window |
 | `test_entity_filtering.py` | `api/entity_matching/filtering.py` — per-strategy cuts and cutoffs |
 | `test_entity_rescoring.py` | `api/entity_matching/rescoring.py` — edit-distance scoring |
+| `test_entity_prefix.py` | `api/entity_matching/prefix.py` — typo-tolerant prefix distance and ranking |
+| `test_entity_suggest.py` | `api/entity_matching/suggest.py` — type-ahead merge order |
 | `test_entity_cutoffs.py` | `api/entity_matching/cutoffs.py` — loading and validating the TOML |
 
 `conftest.py` puts the repository root on `sys.path`; the `api` package is run
