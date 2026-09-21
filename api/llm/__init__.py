@@ -1,6 +1,6 @@
 """OpenAI integration: intent routing and cited answers for chat queries."""
 
-from api.llm.analysis import AnalysisPassage, write_analysis
+from api.llm.analysis import AnalysisPassage, stream_analysis
 from api.llm.client import LlmClient, LlmError, get_llm_client
 from api.llm.intent import classify_intent
 from api.llm.models import IntentEntity, IntentResult
@@ -16,5 +16,5 @@ __all__ = [
     "LlmError",
     "classify_intent",
     "get_llm_client",
-    "write_analysis",
+    "stream_analysis",
 ]

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import asdict, dataclass
 from typing import Optional
 
@@ -35,15 +35,15 @@ class AnalysisPassage:
     text: str
 
 
-def write_analysis(
+def stream_analysis(
     client: LlmClient,
     question: str,
     passages: Sequence[AnalysisPassage],
     *,
     timeout: float,
-) -> str:
-    """The model's cited answer. Raises LlmError on failure."""
-    return client.write_text(
+) -> Iterator[str]:
+    """The model's cited answer, piece by piece. Raises LlmError on failure."""
+    return client.stream_text(
         ANALYSIS_INSTRUCTIONS, analysis_input(question, passages), timeout=timeout
     )
 

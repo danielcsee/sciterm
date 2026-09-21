@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -130,6 +130,40 @@ class RagSearchResponse(BaseModel):
     intent_error: Optional[str] = None
     #: `paper_analysis` only: the cited answer and its paragraphs.
     analysis: Optional[PaperAnalysisResult] = None
+
+
+#: `rag_search` streams newline-delimited JSON, one of these per line.
+RAG_STREAM_MEDIA_TYPE = "application/x-ndjson"
+
+
+class RagResultEvent(BaseModel):
+    """Always first: everything but the answer, citations included.
+
+    For `paper_analysis`, `analysis.answer` is null here; the answer follows
+    as `answer_delta` lines and closes with one `answer_done`.
+    """
+
+    type: Literal["result"] = "result"
+    result: RagSearchResponse
+
+
+class AnswerDeltaEvent(BaseModel):
+    """The next piece of the answer, to append to what came before."""
+
+    type: Literal["answer_delta"] = "answer_delta"
+    text: str
+
+
+class AnswerDoneEvent(BaseModel):
+    """Last, and only after a `paper_analysis` result: how the answer ended.
+
+    `answer` is the whole text, trimmed; it replaces the concatenated deltas.
+    """
+
+    type: Literal["answer_done"] = "answer_done"
+    answer: Optional[str] = None
+    model: Optional[str] = None
+    error: Optional[str] = None
 
 
 class ReferenceList(BaseModel):

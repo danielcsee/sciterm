@@ -501,25 +501,64 @@ export interface EntityStrategyGroup {
   matches: FilteredEntityMatch[]
 }
 
-/** Ranked papers, plus the tool OpenAI routed the query to. */
-export async function ragSearch(
+/** One line of the `/corpus/rag_search` stream. */
+export type RagStreamEvent =
+  /** Always first: everything but the answer, whose `analysis.answer` is null. */
+  | { type: 'result'; result: RagSearchResponse }
+  /** The next piece of a `paper_analysis` answer. */
+  | { type: 'answer_delta'; text: string }
+  /** Last: the whole answer, trimmed, or why there is none. */
+  | { type: 'answer_done'; answer: string | null; model: string | null; error: string | null }
+
+/**
+ * Ranked papers and the routed tool, then any answer as it is written.
+ *
+ * The server streams newline-delimited JSON; each line is yielded as soon as
+ * it is complete.
+ */
+export async function* streamRagSearch(
   query: string,
   signal?: AbortSignal,
-): Promise<RagSearchResponse> {
+): AsyncGenerator<RagStreamEvent> {
   const params = new URLSearchParams({ query })
   const response = await authFetch(`/corpus/rag_search?${params}`, { signal })
-
-  if (!response.ok) {
-    let detail = `search failed (${response.status})`
-    try {
-      const body = await response.json()
-      if (typeof body?.detail === 'string') detail = body.detail
-    } catch {
-      /* non-JSON error body — keep the status line */
-    }
-    throw new ApiError(detail, response.status)
+  if (!response.ok) throw new ApiError(await errorDetail(response), response.status)
+  if (!response.body) throw new ApiError('search returned no body', response.status)
+  for await (const line of ndjsonLines(response.body)) {
+    yield JSON.parse(line) as RagStreamEvent
   }
-  return (await response.json()) as RagSearchResponse
+}
+
+async function errorDetail(response: Response): Promise<string> {
+  try {
+    const body = await response.json()
+    if (typeof body?.detail === 'string') return body.detail
+  } catch {
+    /* non-JSON error body — keep the status line */
+  }
+  return `search failed (${response.status})`
+}
+
+/** The non-blank lines of a streamed body, each once it has fully arrived. */
+async function* ndjsonLines(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
+  const reader = body.getReader()
+  // `stream: true` holds back a multi-byte character split across chunks.
+  const decoder = new TextDecoder()
+  let buffered = ''
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffered += decoder.decode(value, { stream: true })
+      const lines = buffered.split('\n')
+      buffered = lines.pop() ?? ''
+      yield* lines.filter((line) => line.trim())
+    }
+  } finally {
+    reader.releaseLock()
+  }
+  buffered += decoder.decode()
+  if (buffered.trim()) yield buffered
 }
 
 // --- references ---

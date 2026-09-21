@@ -3,8 +3,7 @@ import { useAuth } from '../auth'
 import type { Citation } from '../api'
 import RagResults from './RagResults'
 import type { Message } from '../types'
-import AnalysisAnswer from './AnalysisAnswer'
-import CitationList from './CitationList'
+import AnalysisMessage from './AnalysisMessage'
 import EntityMatchResults from './EntityMatchResults'
 import DebugDisclosure from './DebugDisclosure'
 import IntentEntityList from './IntentEntityList'
@@ -40,6 +39,9 @@ export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitati
   const endRef = useRef<HTMLDivElement>(null)
 
   const asked = messages.length > 0
+  // Scroll to the end for a new message or a finished search, but not for
+  // each piece of a streaming answer: that would drag the reader along.
+  const lastStatus = messages[messages.length - 1]?.status
 
   useEffect(() => {
     if (!asked || !landingVisible) return
@@ -54,7 +56,7 @@ export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitati
   useEffect(() => {
     if (landingVisible) return
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, landingVisible])
+  }, [messages.length, lastStatus, landingVisible])
 
   function openCitation(message: Message, citation: Citation) {
     const paper = message.results?.find((result) => result.paper_id === citation.paper_id)
@@ -106,7 +108,7 @@ export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitati
             never occupy the same space. */}
         {!landingVisible && (
           <ol className="messages">
-            {messages.map((message) => (
+            {messages.map((message, index) => (
               <li key={message.id} className={`message message-${message.role}`}>
                 <div className="message-role">
                   {message.role === 'user' ? 'You' : 'sciterm'}
@@ -119,31 +121,27 @@ export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitati
                     </span>
                   ) : (
                     <>
-                      {message.analysis?.answer ? (
-                        <AnalysisAnswer
-                          answer={message.analysis.answer}
-                          citations={message.analysis.citations}
+                      {message.analysis ? (
+                        <AnalysisMessage
+                          analysis={message.analysis}
+                          papers={message.results ?? []}
+                          pending={message.answerPending ?? false}
+                          fallbackText={message.text}
+                          isLatest={index === messages.length - 1}
+                          onOpenPaper={onOpenPaper}
                           onOpenCitation={(citation) => openCitation(message, citation)}
                         />
                       ) : (
-                        message.text && <p className="rag-text">{message.text}</p>
-                      )}
-                      {message.analysis && message.analysis.citations.length > 0 && (
-                        <DebugDisclosure label="Citations" defaultOpen>
-                          <CitationList
-                            citations={message.analysis.citations}
-                            papers={message.results ?? []}
-                            onOpenPaper={onOpenPaper}
-                            onOpenCitation={(citation) => openCitation(message, citation)}
-                          />
-                        </DebugDisclosure>
-                      )}
-                      {message.results && !message.analysis && (
-                        <RagResults
-                          papers={message.results}
-                          papersConsidered={message.papersConsidered ?? 0}
-                          onOpenPaper={onOpenPaper}
-                        />
+                        <>
+                          {message.text && <p className="rag-text">{message.text}</p>}
+                          {message.results && (
+                            <RagResults
+                              papers={message.results}
+                              papersConsidered={message.papersConsidered ?? 0}
+                              onOpenPaper={onOpenPaper}
+                            />
+                          )}
+                        </>
                       )}
                       {message.entityMatches && (
                         <DebugDisclosure>

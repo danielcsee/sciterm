@@ -4,7 +4,7 @@ Answers a `paper_analysis` chat query in prose, citing the paragraphs it was
 drawn from.
 
 ```
-paper_search result -> paragraph hits -> select per paper -> drop near-copies -> number -> OpenAI -> answer
+paper_search result -> paragraph hits -> select per paper -> drop near-copies -> number -> OpenAI -> streamed answer
 ```
 
 ## Algorithm
@@ -34,7 +34,7 @@ highlighted.
 | `evidence.py` | `gather_evidence`: select, de-duplicate, number |
 | `selection.py` | Pure paragraph scoring and picks |
 | `dedupe.py` | Pure near-duplicate rejection |
-| `answer.py` | `answer_question`: prompts OpenAI, never raises |
+| `answer.py` | `start_analysis` (the citations) and `stream_answer` (the answer, as written); never raise |
 | `manager.py` / `queries.py` | `ParagraphManager` and its SQL |
 | `models.py` | Internal and response types |
 

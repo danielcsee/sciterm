@@ -12,7 +12,7 @@ rag_search -> filter_entity_matches -> classify_intent -> IntentResult -> api.pa
 | File | Purpose |
 |---|---|
 | `tools.py` | Pydantic argument models for `paper_search`, `paper_analysis`, `no_match`, and their tool schemas |
-| `client.py` | `LlmClient`: a forced single tool call (`choose_tool`), or free text (`write_text`) |
+| `client.py` | `LlmClient`: a forced single tool call (`choose_tool`), or streamed free text (`stream_text`) |
 | `analysis.py` | The answer prompt: numbered passages in, prose citing `[n]` out |
 | `intent.py` | The prompt, candidate payload, and joining the model's entities back to candidates |
 | `models.py` | `IntentResult` / `IntentEntity`, returned on `RagSearchResponse.intent` |
@@ -35,9 +35,10 @@ Ids that were never offered are dropped.
 `intent` null and explains itself in `intent_error`; paper search still
 answers from the query's noun phrases.
 
-**Answers get their own budget.** `write_text` uses
-`OPENAI_ANALYSIS_TIMEOUT_SECONDS` (60s) and no retry: generation is slow, and a
-retry would double the wait.
+**Answers stream, on their own budget.** `stream_text` yields the text as the
+model writes it, so the reader starts before it is finished. It uses
+`OPENAI_ANALYSIS_TIMEOUT_SECONDS` (60s, per read) and no retry: generation is
+slow, and a retry would double the wait — or repeat text already shown.
 
 ## Dependencies
 

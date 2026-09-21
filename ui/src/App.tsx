@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import {
-  ApiError,
-  ragSearch,
+  streamRagSearch,
   type Citation,
   type PaperDetail,
   type RagSearchResponse,
 } from './api'
+import { applyRagEvent, endRagStream, searchFailed } from './ragAnswer'
 import { useAuth } from './auth'
 import ChatWindow from './components/ChatWindow'
 import CorpusView from './components/CorpusView'
@@ -30,22 +30,11 @@ import {
 import type { Message, PaperFocus } from './types'
 
 /**
- * The message text: an analysis's failure when it has no answer to show, or
- * else the routed tool's name, or why there is none.
- */
-/**
  * Whether a click should be left to the browser: a modified or non-primary
  * click on a link means "open elsewhere", not "navigate here".
  */
 function isNewTabClick(event: MouseEvent): boolean {
   return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
-}
-
-function intentText(response: RagSearchResponse): string {
-  const analysis = response.analysis
-  if (analysis && !analysis.answer) return `Could not write an answer: ${analysis.error}`
-  if (response.intent) return `Tool: ${response.intent.tool}`
-  return `Tool: none (${response.intent_error ?? 'intent routing did not run'})`
 }
 
 export default function App() {
@@ -211,8 +200,9 @@ export default function App() {
   }, [])
 
   /**
-   * Ask the corpus. A `paper_analysis` query answers in prose with its
-   * citations; otherwise the answer is the routed tool above the ranked papers.
+   * Ask the corpus. A `paper_analysis` query shows its citations first, then
+   * streams its answer in beneath them; otherwise the answer is the routed
+   * tool above the ranked papers.
    *
    * The assistant message is appended immediately in a pending state and then
    * filled in, so the question and a spinner appear at once instead of the
@@ -226,40 +216,26 @@ export default function App() {
       { id: answerId, role: 'assistant', text: 'Searching your corpus…', status: 'pending' },
     ])
 
-    const replace = (patch: Partial<Message>) =>
+    const update = (change: (message: Message) => Message) =>
       setMessages((prev) =>
-        prev.map((message) =>
-          message.id === answerId ? { ...message, ...patch } : message,
-        ),
+        prev.map((message) => (message.id === answerId ? change(message) : message)),
       )
 
+    let response: RagSearchResponse | null = null
     try {
-      const response = await ragSearch(text)
-      replace({
-        status: 'done',
-        text: intentText(response),
-        // No search ran for `no_match`, so there is no result list to show.
-        results: response.search_method ? response.papers : undefined,
-        analysis: response.analysis ?? undefined,
-        papersConsidered: response.papers_considered,
-        entityMatches: response.entity_matches,
-        filteredEntityMatches: response.filtered_entity_matches,
-        intentEntities: response.intent?.entities,
-      })
+      for await (const event of streamRagSearch(text)) {
+        if (event.type === 'result') response = event.result
+        const current = response
+        update((message) => applyRagEvent(message, event, current))
+      }
     } catch (err) {
-      replace({
-        status: 'error',
-        text:
-          err instanceof ApiError
-            ? err.message
-            : 'Could not reach the search service.',
-        results: undefined,
-        analysis: undefined,
-        entityMatches: undefined,
-        filteredEntityMatches: undefined,
-        intentEntities: undefined,
-      })
+      // Once the citations have arrived, keep them: only the answer failed.
+      const current = response
+      update((message) => (current ? endRagStream(message, current) : searchFailed(message, err)))
+      return
     }
+    const finished = response
+    update((message) => endRagStream(message, finished))
   }
 
   return (

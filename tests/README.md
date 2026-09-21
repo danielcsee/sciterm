@@ -24,6 +24,8 @@ One file per module under test, named for it:
 | `test_entity_prefix.py` | `api/entity_matching/prefix.py` — typo-tolerant prefix distance and ranking |
 | `test_entity_suggest.py` | `api/entity_matching/suggest.py` — type-ahead merge order |
 | `test_entity_cutoffs.py` | `api/entity_matching/cutoffs.py` — loading and validating the TOML |
+| `test_paper_analysis_answer.py` | `api/paper_analysis/answer.py` — when an answer is asked for, and how it ends |
+| `test_llm_client.py` | `api/llm/client.py` — reading answer text out of a response stream |
 
 `conftest.py` puts the repository root on `sys.path`; the `api` package is run
 from the checkout rather than installed.
