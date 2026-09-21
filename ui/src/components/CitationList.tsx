@@ -1,6 +1,7 @@
 import type { Citation, SearchedPaper } from '../api'
 import { sectionLabel } from '../sections'
 import CitationMarker from './CitationMarker'
+import ExpandableText from './ExpandableText'
 import PaperPreview from './PaperPreview'
 
 interface Props {
@@ -31,8 +32,9 @@ export function groupByPaper(citations: Citation[], papers: SearchedPaper[]): Ci
 
 /**
  * The paragraphs an answer was grounded in, one paper preview per paper with
- * its cited paragraphs listed beneath. Each paragraph row is a citation
- * marker: hover shows the paragraph, click opens the paper at it.
+ * its cited paragraphs quoted beneath, folded to 300 characters like the
+ * search previews. Each quote's heading is a citation marker: hover shows the
+ * whole paragraph, click opens the paper at it.
  */
 export default function CitationList({ citations, papers, onOpenPaper, onOpenCitation }: Props) {
   return (
@@ -44,28 +46,24 @@ export default function CitationList({ citations, papers, onOpenPaper, onOpenCit
             extra={`${cited.length} cited paragraph${cited.length === 1 ? '' : 's'}`}
             onOpenPaper={onOpenPaper}
           >
-            <ul className="citation-rows">
-              {cited.map((citation) => (
-                <li key={citation.chunk_id}>
-                  <CitationMarker
-                    citation={citation}
-                    onOpen={onOpenCitation}
-                    className="citation-row"
-                  >
-                    <span className="citation-row-number">[{citation.number}]</span>
-                    <span className="citation-row-section">
-                      {[
-                        citation.section_type && sectionLabel(citation.section_type),
-                        citation.selected_by,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </span>
-                    <span className="citation-row-text">{citation.text}</span>
-                  </CitationMarker>
-                </li>
-              ))}
-            </ul>
+            {cited.map((citation) => (
+              <blockquote key={citation.chunk_id} className="rag-quote">
+                <CitationMarker
+                  citation={citation}
+                  onOpen={onOpenCitation}
+                  className="citation-heading"
+                >
+                  {[
+                    `[${citation.number}]`,
+                    citation.section_type && sectionLabel(citation.section_type).toUpperCase(),
+                    citation.selected_by.toUpperCase(),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </CitationMarker>
+                <ExpandableText text={citation.text} />
+              </blockquote>
+            ))}
           </PaperPreview>
         </li>
       ))}

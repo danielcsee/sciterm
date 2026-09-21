@@ -24,7 +24,8 @@ disclosure (open by default) above Debug, in place of the result list.
 
 The answer's `[n]` become `CitationMarker`s; a number the response did not
 supply stays literal text. `CitationList` groups citations under their paper,
-one `PaperPreview` each, with a row per cited paragraph. A marker shows the
+one `PaperPreview` each, quoting each cited paragraph folded to 300 characters
+by `ExpandableText`; the quote's heading is the marker. A marker shows the
 whole paragraph in a fixed tooltip on hover or focus (placed like
 `PaperEntities`' tooltip), and a click opens the paper at that paragraph with
 the query's entities highlighted. Touch screens have no hover, so a tap opens
