@@ -3,8 +3,8 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.app.config import get_settings
@@ -80,8 +80,26 @@ app.include_router(corpus_protected_router)
 app.include_router(corpus_router)
 
 dist = settings.sciterm_ui_dist
+dev_ui_url = settings.sciterm_ui_dev_url
 
-if (dist / "index.html").is_file():
+
+def _dev_ui_location(request: Request) -> str:
+    """The same path and query on the Vite dev server."""
+    query = f"?{request.url.query}" if request.url.query else ""
+    return f"{dev_ui_url.rstrip('/')}{request.url.path}{query}"
+
+
+if dev_ui_url:
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def dev_ui_redirect(full_path: str, request: Request) -> RedirectResponse:
+        """Send browser routes to Vite rather than a stale `ui/dist`.
+
+        Registered last, like `spa` below, so every API route still wins.
+        """
+        return RedirectResponse(_dev_ui_location(request), status_code=307)
+
+elif (dist / "index.html").is_file():
     # Hashed bundles are immutable and can be served straight from disk.
     app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
 

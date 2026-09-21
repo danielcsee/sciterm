@@ -101,6 +101,8 @@ cleanup() {
 trap cleanup INT TERM EXIT
 
 if [ "$PROD" = 1 ]; then
+  # Serve the bundle built below, even if .env names a dev server.
+  export SCITERM_UI_DEV_URL=
   log "building ui bundle"
   npm --prefix ui run build
   log "FastAPI serving the bundle on http://localhost:${API_PORT}"
@@ -114,7 +116,10 @@ if [ "$PROD" = 1 ]; then
     PIDS+=($!)
   fi
 else
-  log "api  → http://localhost:${API_PORT}"
+  # ui/dist only changes on --prod, so in dev it is stale by default. Pages on
+  # the API port redirect to Vite instead; API routes are unaffected.
+  export SCITERM_UI_DEV_URL="http://localhost:${UI_PORT}"
+  log "api  → http://localhost:${API_PORT} (pages redirect to the ui)"
   ./.venv/bin/uvicorn api.app.main:app --host 0.0.0.0 --port "$API_PORT" --reload &
   PIDS+=($!)
   if [ "$START_DB" = 1 ]; then

@@ -57,7 +57,9 @@ The SPA catch-all stays open to everyone even in prod. The login gate is a
 React modal, so `index.html` and `/assets` must load for an anonymous visitor;
 only the JSON routes are gated. When no
 built UI bundle is present, `/` returns a 503 explaining how to build it rather
-than a bare 404.
+than a bare 404. When `SCITERM_UI_DEV_URL` is set — `scripts/dev.sh` sets it
+outside `--prod` — the catch-all 307s to Vite instead, because `ui/dist` is
+only rebuilt by `--prod` and would otherwise serve a stale UI.
 
 ## Dependencies
 
