@@ -1,24 +1,34 @@
-import type { RagPaper } from '../api'
+import type { SearchedPaper } from '../api'
 import PaperCard from './PaperCard'
 
 interface Props {
-  papers: RagPaper[]
-  chunksConsidered: number
+  papers: SearchedPaper[]
+  papersConsidered: number
   onOpenPaper: (paperId: number, title: string | null) => void
+}
+
+/** "2 terms · 14 mentions · most mentions of “BRCA1”" */
+function paperSummary(paper: SearchedPaper): string {
+  const parts = [
+    `${paper.terms_matched} term${paper.terms_matched === 1 ? '' : 's'}`,
+    `${paper.mentions} mention${paper.mentions === 1 ? '' : 's'}`,
+    ...paper.selected_by,
+  ]
+  return parts.join(' · ')
 }
 
 /**
  * The papers behind an answer.
  *
- * There is no generated prose: the backend is retrieval only, so the "answer"
- * is the ranked evidence itself. Each card shows the strongest excerpt, which
- * is the part that actually justifies the ranking.
+ * There is no generated prose yet, so the "answer" is the selected papers
+ * themselves. Each card says why it was chosen and shows its strongest
+ * passage, which is the part that actually justifies the choice.
  */
-export default function RagResults({ papers, chunksConsidered, onOpenPaper }: Props) {
+export default function RagResults({ papers, papersConsidered, onOpenPaper }: Props) {
   if (papers.length === 0) {
     return (
       <p className="rag-empty">
-        Nothing in your corpus passed the relevance threshold. Import more
+        No paper in your corpus mentions what you asked about. Import more
         papers, or try different wording.
       </p>
     )
@@ -27,8 +37,8 @@ export default function RagResults({ papers, chunksConsidered, onOpenPaper }: Pr
   return (
     <div className="rag">
       <p className="rag-lead">
-        {papers.length} paper{papers.length === 1 ? '' : 's'} from{' '}
-        {chunksConsidered} matching passage{chunksConsidered === 1 ? '' : 's'}:
+        {papers.length} of {papersConsidered} matching paper
+        {papersConsidered === 1 ? '' : 's'}:
       </p>
       <ul className="rag-list">
         {papers.map((paper) => (
@@ -45,9 +55,7 @@ export default function RagResults({ papers, chunksConsidered, onOpenPaper }: Pr
                 year={paper.pub_year}
                 pmid={paper.pmid}
                 pmcid={paper.pmcid}
-                extra={`${paper.matched_chunks} passage${
-                  paper.matched_chunks === 1 ? '' : 's'
-                } · best ${paper.best_score.toFixed(2)}`}
+                extra={paperSummary(paper)}
               />
             </button>
             {paper.chunks.length > 0 && (

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from api.pb_client.models import SearchResult
 from api.entity_matching.models import EntityMatchGroup, EntityStrategyGroup
 from api.llm.models import IntentResult
+from api.paper_search import SearchedPaper, SearchMethod, SearchTermSummary
 
 #: Matches the frontend's infinite-scroll page size. Capped so one request
 #: cannot ask for the whole corpus.
@@ -109,42 +110,21 @@ class ImportedReferenceList(BaseModel):
 # --------------------------------------------------------------------------
 
 
-class RagChunk(BaseModel):
-    """One matching excerpt, as evidence for why a paper ranked where it did."""
-
-    chunk_id: int
-    section_type: Optional[str] = None
-    text: str
-    score: float
-
-
-class RagPaper(BaseModel):
-    paper_id: int
-    pmid: int
-    pmcid: Optional[str] = None
-    title: Optional[str] = None
-    journal: Optional[str] = None
-    pub_year: Optional[int] = None
-    #: The aggregated score the ranking used.
-    score: float
-    #: How many chunks cleared the threshold. With the `sum` aggregator this
-    #: largely *is* the score, which is worth being able to see.
-    matched_chunks: int
-    best_score: float
-    chunks: list[RagChunk] = Field(default_factory=list)
-
-
 class RagSearchResponse(BaseModel):
     query: str
-    #: Echoed so a caller can tell "nothing matched" from "the bar was high".
-    threshold: float
-    aggregator: str
-    chunks_considered: int
-    papers: list[RagPaper] = Field(default_factory=list)
+    #: Chosen by `api.paper_search` when the query routes to `paper_search` or
+    #: `paper_analysis`, or when routing could not run. Empty for `no_match`.
+    papers: list[SearchedPaper] = Field(default_factory=list)
+    #: Which search produced `papers`; null when none ran.
+    search_method: Optional[SearchMethod] = None
+    #: The terms that search scored, with their weights and match counts.
+    search_terms: list[SearchTermSummary] = Field(default_factory=list)
+    #: Papers matching at least one term, before the top few were selected.
+    papers_considered: int = 0
     entity_matches: list[EntityMatchGroup] = Field(default_factory=list)
     filtered_entity_matches: list[EntityStrategyGroup] = Field(default_factory=list)
     #: The tool OpenAI routed the query to. Null when routing is unconfigured
-    #: or failed; `intent_error` then says which, and retrieval still answers.
+    #: or failed; `intent_error` then says which, and search still answers.
     intent: Optional[IntentResult] = None
     intent_error: Optional[str] = None
 

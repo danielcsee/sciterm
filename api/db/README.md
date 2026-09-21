@@ -3,8 +3,9 @@
 The Postgres layer: schema, session plumbing, and migrations. Everything here
 is populated from one PubTator response per paper.
 
-The schema supports semantic/RAG retrieval through
-`paper_chunks.embedding` (pgvector), while retaining the source paper's
+The schema supports semantic retrieval through `paper_chunks.embedding`
+(pgvector) and full-text search through `paper_chunks.text_search`, a stored
+generated tsvector with a GIN index, while retaining the source paper's
 entities, mentions, relations, and references for analysis. Entity candidate
 matching uses canonical-name vectors on `entities` and keeps one vector per
 distinct mention surface form in `entity_mention_embeddings`, separate from

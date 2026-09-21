@@ -200,8 +200,9 @@ export default function App() {
       replace({
         status: 'done',
         text: intentText(response),
-        results: response.papers,
-        chunksConsidered: response.chunks_considered,
+        // No search ran for `no_match`, so there is no result list to show.
+        results: response.search_method ? response.papers : undefined,
+        papersConsidered: response.papers_considered,
         entityMatches: response.entity_matches,
         filteredEntityMatches: response.filtered_entity_matches,
         intentEntities: response.intent?.entities,

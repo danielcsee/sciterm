@@ -27,6 +27,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Computed,
     Date,
     DateTime,
     ForeignKey,
@@ -38,7 +39,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.db.base import Base
@@ -159,6 +160,11 @@ class PaperChunk(Base):
     char_end: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(EMBEDDING_DIM))
+    #: Full-text search representation of `text`, derived by Postgres. Stored
+    #: rather than computed per query so the GIN index can answer `@@`.
+    text_search: Mapped[Optional[str]] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('english', text)", persisted=True)
+    )
 
     paper: Mapped[Paper] = relationship(back_populates="chunks")
 
@@ -167,6 +173,7 @@ class PaperChunk(Base):
         CheckConstraint("char_end > char_start", name="ck_paper_chunks_span"),
         Index("ix_paper_chunks_paper_span", "paper_id", "char_start", "char_end"),
         Index("ix_paper_chunks_section_type", "section_type"),
+        Index("ix_paper_chunks_text_search", "text_search", postgresql_using="gin"),
         # Declared here, not just in the migration, so autogenerate knows it
         # exists and stops emitting a DROP for it on every future revision.
         Index(
