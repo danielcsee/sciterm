@@ -8,6 +8,17 @@ that distinct components get their own `.tsx`.
 The conversation pane. The landing block is held mounted with an exiting class
 so it slides up and fades *before* the answer appears.
 
+`EntityMatchResults` renders the experimental entity candidates after paper
+evidence. It keeps noun-chunk/3-gram, trigram/vector, and canonical-name/mention
+paths visibly separate so retrieval quality can be compared. It is wrapped in
+`DebugDisclosure`, so the candidates stay collapsed until asked for.
+
+## `DebugDisclosure.tsx`
+
+An inline "Debug" toggle with a caret that rotates from right to down when
+open. Open/closed state is local, so toggling never re-runs `ChatWindow`'s
+auto-scroll (which watches `messages`) and the view stays put.
+
 ## `PaperExplorer.tsx`
 
 The right-hand panel. Owns import state so `SearchPubTator` and

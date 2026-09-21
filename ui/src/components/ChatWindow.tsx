@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth'
 import RagResults from './RagResults'
 import type { Message } from '../types'
+import EntityMatchResults from './EntityMatchResults'
+import DebugDisclosure from './DebugDisclosure'
 
 const EXAMPLES = [
   'What is known about BRCA1 and DNA repair?',
@@ -113,6 +115,11 @@ export default function ChatWindow({ messages, onSend, onOpenPaper }: Props) {
                           chunksConsidered={message.chunksConsidered ?? 0}
                           onOpenPaper={onOpenPaper}
                         />
+                      )}
+                      {message.entityMatches && (
+                        <DebugDisclosure>
+                          <EntityMatchResults groups={message.entityMatches} />
+                        </DebugDisclosure>
                       )}
                     </>
                   )}
