@@ -12,11 +12,14 @@ from fastapi import APIRouter, HTTPException, Path, Query, Response
 from api.app.config import get_settings
 from api.db import session_scope
 from api.entity_matching import (
+    EntityMatch,
     EntityMatchGroup,
     EntityMatchManager,
+    PrefixMatchManager,
     QueryFragment,
     merge_suggestions,
 )
+from api.entity_matching.suggest import SUGGESTION_LIMIT
 from api.groups.manager import DuplicateGroupNameError, GroupManager
 from api.groups.schemas import (
     MAX_SUGGEST_LENGTH,
@@ -92,7 +95,7 @@ def delete_group(group_id: int = Path(..., ge=1)) -> Response:
 def suggest_entities(
     q: str = Query(..., min_length=MIN_SUGGEST_LENGTH, max_length=MAX_SUGGEST_LENGTH),
 ) -> EntitySuggestions:
-    """The chat's four candidate strategies over the typed text, merged per entity.
+    """Typo-tolerant prefix matches, then the chat's four candidate strategies.
 
     The whole input is one fragment: spaCy extraction exists to split a
     sentence into phrases, and a type-ahead box already holds one phrase. The
@@ -101,26 +104,32 @@ def suggest_entities(
     query = q.strip()
     if len(query) < MIN_SUGGEST_LENGTH:
         return EntitySuggestions(query=query)
-    groups = _match_candidates(QueryFragment(text=query, method="noun_phrase"))
+    prefix_matches, groups = _match_candidates(
+        QueryFragment(text=query, method="noun_phrase")
+    )
     return EntitySuggestions(
         query=query,
         entities=[
             SuggestedEntity(**match.model_dump(exclude={"score"}))
-            for match in merge_suggestions(groups)
+            for match in merge_suggestions(groups, prefix_matches)
         ],
     )
 
 
-def _match_candidates(fragment: QueryFragment) -> list[EntityMatchGroup]:
+def _match_candidates(
+    fragment: QueryFragment,
+) -> tuple[list[EntityMatch], list[EntityMatchGroup]]:
     settings = get_settings()
     vectors = embed_queries([fragment.text])
     with session_scope() as session:
-        return EntityMatchManager(
+        prefix_matches = PrefixMatchManager(session).search(fragment.text, SUGGESTION_LIMIT)
+        groups = EntityMatchManager(
             session,
             top_k=settings.entity_match_top_k,
             embedding_threshold=settings.entity_match_embedding_threshold,
             trigram_threshold=settings.entity_match_trigram_threshold,
         ).search([fragment], vectors)
+    return prefix_matches, groups
 
 
 def _require_entities(manager: GroupManager, entity_ids: list[int]) -> None:

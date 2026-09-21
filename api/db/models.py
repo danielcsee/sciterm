@@ -38,6 +38,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text as sql_text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -244,6 +245,13 @@ class Entity(Base):
             postgresql_using="gist",
             postgresql_ops={"name": "gist_trgm_ops"},
         ),
+        # First-letter candidate lookup for the type-ahead's typo search:
+        # `lower(name) LIKE 'b%'`. text_pattern_ops so LIKE can use it under
+        # any collation.
+        Index(
+            "ix_entities_lower_name_prefix",
+            sql_text("lower(name) text_pattern_ops"),
+        ),
         Index(
             "ix_entities_embedding_hnsw",
             "embedding",
@@ -304,6 +312,12 @@ class EntityMentionEmbedding(Base):
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
 
     __table_args__ = (
+        # The same first-letter lookup as `ix_entities_lower_name_prefix`:
+        # this table is the corpus's list of distinct mention forms.
+        Index(
+            "ix_entity_mention_embeddings_lower_surface_prefix",
+            sql_text("lower(surface_text) text_pattern_ops"),
+        ),
         Index(
             "ix_entity_mention_embeddings_hnsw",
             "embedding",

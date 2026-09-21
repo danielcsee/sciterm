@@ -9,6 +9,7 @@ from api.entity_matching.models import (
     EntityStrategyGroup,
     FilteredEntityMatch,
 )
+from api.entity_matching.prefix_search import PrefixMatchManager
 from api.entity_matching.search import EntityMatchManager
 from api.entity_matching.suggest import merge_suggestions
 
@@ -19,6 +20,7 @@ __all__ = [
     "EntityStrategyGroup",
     "FilteredEntityMatch",
     "MatchCutoffs",
+    "PrefixMatchManager",
     "QueryFragment",
     "extract_query_fragments",
     "filter_entity_matches",

@@ -6,11 +6,13 @@ cutoffs are calibrated on whole words, so a half-typed "osteop" would clear
 none. Suggestions instead take every strategy's candidates as they come from
 `EntityMatchManager` — already above its SQL-level thresholds — and merge them.
 
-Trigram and embedding scores are on different scales and cannot be sorted
-together, so the merge is by strategy priority: spelling matches before
-meaning matches, canonical names before mention text. Within a strategy the
-manager's own score order holds. An entity found by several strategies keeps
-its first, highest-priority appearance.
+Scores from different strategies are on different scales and cannot be
+sorted together, so the merge is by strategy priority. First come typo-tolerant
+prefix matches (`prefix.py`) — for a type-ahead, a near match on the start of a
+name is the strongest signal. Then spelling matches before meaning matches,
+canonical names before mention text. Within a strategy its own order holds. An
+entity found by several strategies keeps its first, highest-priority
+appearance.
 """
 
 from __future__ import annotations
@@ -32,12 +34,17 @@ STRATEGY_PRIORITY: tuple[tuple[str, str], ...] = (
 
 
 def merge_suggestions(
-    groups: Sequence[EntityMatchGroup], limit: int = SUGGESTION_LIMIT
+    groups: Sequence[EntityMatchGroup],
+    prefix_matches: Sequence[EntityMatch] = (),
+    limit: int = SUGGESTION_LIMIT,
 ) -> list[EntityMatch]:
-    """One candidate per entity, in strategy-priority order, at most `limit`."""
+    """One candidate per entity, in strategy-priority order, at most `limit`.
+
+    `prefix_matches` are already ranked and go ahead of every group.
+    """
     suggestions: list[EntityMatch] = []
     seen: set[int] = set()
-    for match in _in_priority_order(groups):
+    for match in [*prefix_matches, *_in_priority_order(groups)]:
         if match.entity_id in seen:
             continue
         seen.add(match.entity_id)

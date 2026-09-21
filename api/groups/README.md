@@ -10,7 +10,7 @@ DELETE /groups/{id}             ->  204
 GET    /entities/suggest?q=...  ->  EntitySuggestions (type-ahead)
 ```
 
-All ungated: groups have no owner, and the type-ahead is local compute only.
+All ungated: groups have no owner; the type-ahead is local compute.
 
 ## Files
 
@@ -31,15 +31,15 @@ route into a 409. Names are trimmed; blank ones are rejected.
 **A group is never empty.** `entity_ids` needs at least one id, and repeats are
 dropped keeping first-seen order, which is chip order (`position`).
 
-**`PATCH` replaces the whole entity list** when `entity_ids` is given, rather
-than taking adds and removes: the edit modal always holds the full list.
+**`PATCH` replaces the whole entity list** when `entity_ids` is given.
 
 **Chip labels** follow `PaperEntities`: when an entity's name is really its
 identifier (Species), `names` carries the corpus's commonest wording.
 
-**Suggestions** reuse `EntityMatchManager` with the typed text as one fragment,
-merged by `entity_matching.merge_suggestions` rather than the chat filter —
-see `api/entity_matching/suggest.py` for why.
+**Suggestions** are typo-tolerant prefix matches (`PrefixMatchManager`), then
+`EntityMatchManager` with the typed text as one fragment, merged by
+`entity_matching.merge_suggestions` rather than the chat filter — see
+`api/entity_matching/suggest.py` for why.
 
 ## Dependencies
 
