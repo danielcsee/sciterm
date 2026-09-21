@@ -9,7 +9,8 @@ groups follow as `GroupTile`s, newest first. A tile click or Search opens
 `GroupPaperResults`; Edit opens `EditGroupModal`.
 
 **`GroupPaperResults.tsx`** — the group's papers, paged on scroll by
-`useGroupPaperPages.ts`. The toggle reverses subgroup size order and
+`useGroupPaperPages.ts`. The count is followed by the group's
+entities as `EntityChip`s. The toggle reverses subgroup size order and
 refetches; ✕ returns. `PaperSubgroupList.tsx` frames subgroups of 2+.
 
 **`GroupBuilder.tsx`** — type-ahead with Save Group beside it, chosen entities
@@ -33,8 +34,8 @@ as in `AccessCodeModal`, whose `code-*` classes they reuse for a matching look.
 **`api.ts`** — the `/groups`, `/groups/{id}/papers`, and `/entities/suggest`
 client, mirroring `api/groups/schemas.py` and `api/group_search/schemas.py`.
 
-Duplicate names come back from the server as a 409 and show under the name
-field; the server compares names ignoring case.
+Duplicate names (compared ignoring case) come back as a 409 and show under
+the name field.
 
 ## Dependencies
 

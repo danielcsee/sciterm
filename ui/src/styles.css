@@ -1742,6 +1742,31 @@ body {
 .group-delete:disabled { opacity: 0.55; cursor: default; }
 
 /* ---------- group paper results ---------- */
+/* Lets the entity chips wrap rather than push the close button off. */
+.group-results-heading { flex: 1; min-width: 0; }
+
+/* The count, then the group's entities, wrapping onto further lines. */
+.group-results-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 5px;
+}
+
+.group-results-meta .corpus-count { margin: 0; }
+
+.group-results-entities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-results-entities li { display: flex; min-width: 0; }
+
 .sort-toggle {
   margin-top: 10px;
   display: inline-flex;

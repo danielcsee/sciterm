@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
+import EntityChip from '../components/EntityChip'
 import type { EntityGroup, SortOrder } from './api'
 import PaperSubgroupList from './PaperSubgroupList'
 import { useGroupPaperPages, type GroupPaperPages } from './useGroupPaperPages'
@@ -38,9 +39,12 @@ export default function GroupPaperResults({
   return (
     <section className="corpus" aria-label={`Papers in ${group.name}`}>
       <header className="corpus-header">
-        <div>
+        <div className="group-results-heading">
           <h1 className="corpus-title">{group.name}</h1>
-          <ResultsSummary pages={pages} />
+          <div className="group-results-meta">
+            <ResultsSummary pages={pages} />
+            <GroupEntities group={group} />
+          </div>
           <SortToggle order={order} onChange={setOrder} />
         </div>
         <button className="corpus-close" type="button" onClick={onClose} aria-label="Close">
@@ -97,6 +101,19 @@ function ResultsSummary({ pages }: { pages: GroupPaperPages }) {
       {papers.toLocaleString()} paper{papers === 1 ? '' : 's'} in {groups.toLocaleString()}{' '}
       subgroup{groups === 1 ? '' : 's'}
     </p>
+  )
+}
+
+/** The entities the group searches for, as inert chips. */
+function GroupEntities({ group }: { group: EntityGroup }) {
+  return (
+    <ul className="group-results-entities" aria-label={`Entities in ${group.name}`}>
+      {group.entities.map((entity) => (
+        <li key={entity.entity_id}>
+          <EntityChip entity={entity} />
+        </li>
+      ))}
+    </ul>
   )
 }
 
