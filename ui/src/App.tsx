@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
 import {
   ApiError,
   ragSearch,
@@ -33,6 +33,14 @@ import type { Message, PaperFocus } from './types'
  * The message text: an analysis's failure when it has no answer to show, or
  * else the routed tool's name, or why there is none.
  */
+/**
+ * Whether a click should be left to the browser: a modified or non-primary
+ * click on a link means "open elsewhere", not "navigate here".
+ */
+function isNewTabClick(event: MouseEvent): boolean {
+  return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
+}
+
 function intentText(response: RagSearchResponse): string {
   const analysis = response.analysis
   if (analysis && !analysis.answer) return `Could not write an answer: ${analysis.error}`
@@ -257,10 +265,20 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
+        {/* A real link, so it can be opened in a new tab; a plain click stays
+            in-app and returns to the chat without reloading it. */}
+        <a
+          className="brand"
+          href={viewToPath(CHAT)}
+          onClick={(event) => {
+            if (isNewTabClick(event)) return
+            event.preventDefault()
+            navigate(CHAT)
+          }}
+        >
           <span className="brand-mark" aria-hidden="true" />
           <span className="brand-name">sciterm</span>
-        </div>
+        </a>
         {/* The fixed tab sits outside PaperTabs so it never scrolls with them. */}
         <nav className="tabs">
           <button
