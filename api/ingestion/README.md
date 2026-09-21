@@ -16,6 +16,7 @@ chain(ingest_paper | embed_paper)
 | `persist.py` | `PaperResponse` → rows, and the ledger reads |
 | `chunking.py` | Passages → chunks. Pure: no network, DB or torch |
 | `embedding.py` | Lazy model; document and query encoders |
+| `entity_embeddings.py` | Entity-name and mention-text vector maintenance |
 | `routes.py` | The two routes |
 | `models.py` | Their models |
 
@@ -43,7 +44,9 @@ checked first, so a late failure is an error, not a success.
 
 `ingest_paper | embed_paper`, chained with the `papers.id` passed between them.
 Completing `embed_paper` is what "imported" means, so a paper appears in
-`/corpus` and RAG results only after its vectors are stored.
+`/corpus` and RAG results only after its chunk and entity-search vectors are
+stored. Existing corpora can fill the latter with
+`python -m api.ingestion.backfill_entity_embeddings` after migration.
 
 ## Concurrency
 

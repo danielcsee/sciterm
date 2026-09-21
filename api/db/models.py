@@ -201,6 +201,9 @@ class Entity(Base):
     #: storing. Rejected at ingest per concept, so the paper still imports.
     database: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[Optional[str]] = mapped_column(Text)
+    #: Search representation of `name`. It is derived locally and nullable so
+    #: ingestion can commit before the embedding worker runs.
+    embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(EMBEDDING_DIM))
 
     #: The two shapes NCBI actually produces. Kept in sync with
     #: `api.pb_client.models.IDENTIFIER_RE`, which drops a bad id at ingest;
@@ -228,6 +231,18 @@ class Entity(Base):
         ),
         Index("ix_entities_entity_type", "entity_type"),
         Index("ix_entities_name", "name"),
+        Index(
+            "ix_entities_name_trgm",
+            "name",
+            postgresql_using="gist",
+            postgresql_ops={"name": "gist_trgm_ops"},
+        ),
+        Index(
+            "ix_entities_embedding_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
     )
 
 
@@ -263,6 +278,31 @@ class PaperEntityMention(Base):
         Index("ix_mentions_paper", "paper_id"),
         Index("ix_mentions_entity", "entity_id"),
         Index("ix_mentions_chunk", "chunk_id"),
+        Index(
+            "ix_mentions_surface_text_trgm",
+            "surface_text",
+            postgresql_using="gist",
+            postgresql_ops={"surface_text": "gist_trgm_ops"},
+        ),
+    )
+
+
+class EntityMentionEmbedding(Base):
+    """One derived vector per distinct, case-sensitive mention surface form."""
+
+    __tablename__ = "entity_mention_embeddings"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    surface_text: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
+
+    __table_args__ = (
+        Index(
+            "ix_entity_mention_embeddings_hnsw",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
     )
 
 

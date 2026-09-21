@@ -2,6 +2,8 @@ import { useState, type ReactNode } from 'react'
 
 interface Props {
   children: ReactNode
+  /** Toggle text; nested disclosures name what they hold. */
+  label?: string
 }
 
 /**
@@ -9,7 +11,7 @@ interface Props {
  * State is local so toggling never touches the message list — the chat's
  * auto-scroll watches `messages`, and a plain button scrolls nothing.
  */
-export default function DebugDisclosure({ children }: Props) {
+export default function DebugDisclosure({ children, label = 'Debug' }: Props) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -20,7 +22,7 @@ export default function DebugDisclosure({ children }: Props) {
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span>Debug</span>
+        <span>{label}</span>
         <span className={`debug-caret${open ? ' debug-caret-open' : ''}`} aria-hidden="true">
           ▶
         </span>

@@ -28,7 +28,12 @@ from api.corpus.models import (
     ReferenceList,
 )
 from api.app.config import get_settings
-from api.ingestion.embedding import embed_query
+from api.entity_matching import (
+    EntityMatchManager,
+    extract_query_fragments,
+    filter_entity_matches,
+)
+from api.ingestion.embedding import embed_queries
 from api.pb_client import PubTatorClient
 from api.db import session_scope
 
@@ -100,21 +105,30 @@ def rag_search(
     if not text:
         raise HTTPException(status_code=400, detail="query must not be blank")
 
-    vector = embed_query(text)
+    fragments = extract_query_fragments(text)
+    vectors = embed_queries([text, *(fragment.text for fragment in fragments)])
     with session_scope() as session:
         result = rag.search(
             session,
             text,
-            vector,
+            vectors[0],
             threshold=settings.rag_score_threshold,
             top_papers=settings.rag_top_papers,
             chunks_per_paper=settings.rag_chunks_per_paper,
         )
+        result.entity_matches = EntityMatchManager(
+            session,
+            top_k=settings.entity_match_top_k,
+            embedding_threshold=settings.entity_match_embedding_threshold,
+            trigram_threshold=settings.entity_match_trigram_threshold,
+        ).search(fragments, vectors[1:])
+    result.filtered_entity_matches = filter_entity_matches(result.entity_matches, text)
     log.info(
-        "rag_search %r -> %d papers from %d chunks over %.2f",
+        "rag_search %r -> %d papers from %d chunks and %d entity paths over %.2f",
         text,
         len(result.papers),
         result.chunks_considered,
+        len(result.entity_matches),
         result.threshold,
     )
     return result

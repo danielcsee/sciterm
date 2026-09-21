@@ -5,7 +5,10 @@ is populated from one PubTator response per paper.
 
 The schema supports semantic/RAG retrieval through
 `paper_chunks.embedding` (pgvector), while retaining the source paper's
-entities, mentions, relations, and references for analysis.
+entities, mentions, relations, and references for analysis. Entity candidate
+matching uses canonical-name vectors on `entities` and keeps one vector per
+distinct mention surface form in `entity_mention_embeddings`, separate from
+source annotations.
 
 ## Files
 
@@ -15,8 +18,9 @@ psycopg3 driver, because a bare `postgresql://` URL makes SQLAlchemy reach for
 psycopg2, which is not installed.
 
 **`models.py`** — the tables: `papers`, `paper_pubtator_docs`, `paper_authors`,
-`paper_chunks`, `entities`, `paper_entity_mentions`, `paper_relations`,
-`paper_references`, `paper_stage_runs`.
+`paper_chunks`, `entities`, `paper_entity_mentions`,
+`entity_mention_embeddings`, `paper_relations`, `paper_references`,
+`paper_stage_runs`.
 
 The access-control tables — `users`, `auth_sessions`, `free_access_codes` —
 live in [`api/auth/models.py`](../auth/models.py) instead, because they are

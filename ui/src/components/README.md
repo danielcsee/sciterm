@@ -11,11 +11,13 @@ so it slides up and fades *before* the answer appears.
 `EntityMatchResults` renders the experimental entity candidates after paper
 evidence. It keeps noun-chunk/3-gram, trigram/vector, and canonical-name/mention
 paths visibly separate so retrieval quality can be compared. It is wrapped in
-`DebugDisclosure`, so the candidates stay collapsed until asked for.
+`DebugDisclosure`, so the candidates stay collapsed until asked for. Inside it,
+nested disclosures separate "Raw Candidates" from the server's "Filtered
+Candidates", which pool fragments per strategy and name each match's fragment.
 
 ## `DebugDisclosure.tsx`
 
-An inline "Debug" toggle with a caret that rotates from right to down when
+An inline toggle, labelled "Debug" unless `label` says otherwise, with a caret that rotates from right to down when
 open. Open/closed state is local, so toggling never re-runs `ChatWindow`'s
 auto-scroll (which watches `messages`) and the view stays put.
 

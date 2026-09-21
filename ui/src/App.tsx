@@ -196,6 +196,8 @@ export default function App() {
         text: '',
         results: response.papers,
         chunksConsidered: response.chunks_considered,
+        entityMatches: response.entity_matches,
+        filteredEntityMatches: response.filtered_entity_matches,
       })
     } catch (err) {
       replace({
@@ -205,6 +207,8 @@ export default function App() {
             ? err.message
             : 'Could not reach the search service.',
         results: undefined,
+        entityMatches: undefined,
+        filteredEntityMatches: undefined,
       })
     }
   }

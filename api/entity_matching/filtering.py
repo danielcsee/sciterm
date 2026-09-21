@@ -1,0 +1,72 @@
+"""Reduce raw candidate groups to the few worth acting on per strategy."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+from api.entity_matching.models import (
+    EntityMatchGroup,
+    EntityStrategyGroup,
+    ExtractionMethod,
+    FilteredEntityMatch,
+    MatchMethod,
+    MatchSource,
+)
+
+MAX_CANDIDATES_PER_STRATEGY = 5
+MIN_CANDIDATE_SCORE = 0.65
+
+StrategyKey = tuple[ExtractionMethod, MatchMethod, MatchSource]
+
+
+def filter_entity_matches(
+    groups: Sequence[EntityMatchGroup], query: str
+) -> list[EntityStrategyGroup]:
+    """Dedupe, keep the top candidates per strategy, then drop low scores.
+
+    A strategy is one extraction/matcher/source path pooled across fragments.
+    Short queries keep fewer candidates: one per query word, up to five.
+    """
+    limit = candidate_limit(query)
+    filtered: list[EntityStrategyGroup] = []
+    for (extraction, method, source), candidates in _pool_by_strategy(groups).items():
+        top = _dedupe_by_text(candidates)[:limit]
+        filtered.append(
+            EntityStrategyGroup(
+                extraction_method=extraction,
+                match_method=method,
+                source=source,
+                matches=[match for match in top if match.score >= MIN_CANDIDATE_SCORE],
+            )
+        )
+    return filtered
+
+
+def candidate_limit(query: str) -> int:
+    """Five candidates, or one per word when the query is shorter than that."""
+    return min(MAX_CANDIDATES_PER_STRATEGY, len(query.split()))
+
+
+def _pool_by_strategy(
+    groups: Sequence[EntityMatchGroup],
+) -> dict[StrategyKey, list[FilteredEntityMatch]]:
+    pooled: dict[StrategyKey, list[FilteredEntityMatch]] = {}
+    for group in groups:
+        key = (group.extraction_method, group.match_method, group.source)
+        pooled.setdefault(key, []).extend(
+            FilteredEntityMatch(**match.model_dump(), query_fragment=group.query_fragment)
+            for match in group.matches
+        )
+    return pooled
+
+
+def _dedupe_by_text(
+    candidates: Sequence[FilteredEntityMatch],
+) -> list[FilteredEntityMatch]:
+    """Keep the best-scoring candidate per lowercased matched text, best first."""
+    best: dict[str, FilteredEntityMatch] = {}
+    for candidate in candidates:
+        key = candidate.matched_text.lower()
+        if key not in best or candidate.score > best[key].score:
+            best[key] = candidate
+    return sorted(best.values(), key=lambda match: match.score, reverse=True)

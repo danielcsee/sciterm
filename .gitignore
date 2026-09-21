@@ -18,6 +18,8 @@ papers/
 # corpus-pmids.csv is deliberately NOT ignored: 31 lines, and it is the
 # re-import list if the datastore volumes are ever lost.
 
+# openai key
+openai_key_do_not_commit.txt
 
 .DS_Store
 

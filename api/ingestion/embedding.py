@@ -68,7 +68,12 @@ def embed_query(query: str) -> list[float]:
     query (measured: 0.742 -> 0.688 on the same text), so a threshold tuned
     against one convention does not transfer to the other.
     """
-    return embed_texts([QUERY_INSTRUCTION + query.strip()])[0]
+    return embed_queries([query])[0]
+
+
+def embed_queries(queries: Sequence[str]) -> list[list[float]]:
+    """Encode search inputs in one batch with BGE's query instruction."""
+    return embed_texts([QUERY_INSTRUCTION + query.strip() for query in queries])
 
 
 def embed_texts(texts: Sequence[str]) -> list[list[float]]:
