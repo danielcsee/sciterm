@@ -76,6 +76,13 @@ class Settings(BaseSettings):
     #: Best-matching chunks returned per paper, as evidence for the ranking.
     rag_chunks_per_paper: int = 3
 
+    # --- Entity matching experiment ---
+    #: Candidate count is applied independently to every extraction/matcher/
+    #: source combination so the UI exposes all four experimental paths.
+    entity_match_top_k: int = 5
+    entity_match_embedding_threshold: float = 0.55
+    entity_match_trigram_threshold: float = 0.3
+
     #: torch device for the encoder. None lets sentence-transformers choose,
     #: which is "mps" on Apple silicon. Set to "cpu" when the worker must run
     #: in a forked process — Metal cannot be initialised after fork.

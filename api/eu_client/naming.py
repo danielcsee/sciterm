@@ -118,6 +118,9 @@ def apply_names(session: Session, names: dict[int, str]) -> int:
     # `persist.upsert_entities`, which sorts for the same reason.
     session.execute(
         update(Entity),
-        [{"id": entity_id, "name": names[entity_id]} for entity_id in sorted(names)],
+        [
+            {"id": entity_id, "name": names[entity_id], "embedding": None}
+            for entity_id in sorted(names)
+        ],
     )
     return len(names)

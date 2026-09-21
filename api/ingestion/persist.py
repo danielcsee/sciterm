@@ -571,7 +571,10 @@ def upsert_entities(
     if repairs:
         session.execute(
             update(Entity),
-            [{"id": entity_id, "name": repairs[entity_id]} for entity_id in sorted(repairs)],
+            [
+                {"id": entity_id, "name": repairs[entity_id], "embedding": None}
+                for entity_id in sorted(repairs)
+            ],
         )
         log.info("named %d pre-existing entity/entities for PMID %s", len(repairs), paper.pmid)
 

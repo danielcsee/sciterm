@@ -45,7 +45,9 @@ gate.
 
 **Retrieval is LLM-free.** Chunks below `RAG_SCORE_THRESHOLD` are dropped,
 survivors summed per paper, top three returned with their best excerpts. The
-aggregator is a named function; `AGGREGATORS` also holds `max` and `mean`.
+same response includes experimental entity candidates grouped by extraction,
+matching method, and searched source. The aggregator is a named function;
+`AGGREGATORS` also holds `max` and `mean`.
 
 ## Dependencies
 

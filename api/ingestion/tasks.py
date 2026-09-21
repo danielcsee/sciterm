@@ -28,6 +28,7 @@ from api.db.models import PaperChunk
 from api.ingestion import persist
 from api.eu_client import naming
 from api.ingestion.embedding import embed_texts, embedding_fingerprint
+from api.ingestion.entity_embeddings import embed_search_terms_for_paper
 from api.ncbi import http as ncbi_http
 from api.redis_conn import close_client as close_redis
 from api.pb_client.models import PaperResponse
@@ -220,14 +221,6 @@ def embed_paper(self, paper_id: int, force: bool = False) -> int:
             .order_by(PaperChunk.ordinal)
         ).all()
 
-    if not rows:
-        with session_scope() as session:
-            persist.mark_stage(
-                session, paper_id, "embed", "done", fingerprint=fingerprint
-            )
-        log.info("paper %s has no chunks to embed", paper_id)
-        return 0
-
     try:
         vectors = embed_texts([text for _, text in rows])
         with session_scope() as session:
@@ -237,16 +230,22 @@ def embed_paper(self, paper_id: int, force: bool = False) -> int:
                     .where(PaperChunk.id == chunk_id)
                     .values(embedding=vector)
                 )
-            persist.mark_stage(
-                session, paper_id, "embed", "done", fingerprint=fingerprint
-            )
+        entity_count, surface_form_count = embed_search_terms_for_paper(paper_id)
+        with session_scope() as session:
+            persist.mark_stage(session, paper_id, "embed", "done", fingerprint=fingerprint)
     except Exception as exc:
         with session_scope() as session:
             persist.mark_stage(session, paper_id, "embed", "failed", error=str(exc)[:500])
         log.exception("embedding failed for paper %s", paper_id)
         raise self.retry(exc=exc, countdown=10) from exc
 
-    log.info("embedded %d chunks for paper %s", len(rows), paper_id)
+    log.info(
+        "embedded %d chunks, %d entities and %d mention surface forms for paper %s",
+        len(rows),
+        entity_count,
+        surface_form_count,
+        paper_id,
+    )
     return paper_id
 
 

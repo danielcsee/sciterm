@@ -118,7 +118,12 @@ export default function ChatWindow({ messages, onSend, onOpenPaper }: Props) {
                       )}
                       {message.entityMatches && (
                         <DebugDisclosure>
-                          <EntityMatchResults groups={message.entityMatches} />
+                          <DebugDisclosure label="Raw Candidates">
+                            <EntityMatchResults groups={message.entityMatches} />
+                          </DebugDisclosure>
+                          <DebugDisclosure label="Filtered Candidates">
+                            <EntityMatchResults groups={message.filteredEntityMatches ?? []} />
+                          </DebugDisclosure>
                         </DebugDisclosure>
                       )}
                     </>

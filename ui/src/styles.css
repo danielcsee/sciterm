@@ -359,6 +359,9 @@ body {
 
 .debug-caret-open { transform: rotate(90deg); }
 
+/* Nested disclosures sit indented under their parent toggle. */
+.debug-body > .debug-disclosure { margin: 10px 0 0 15px; }
+
 /* The panel already carries .entity-matches' top margin, so none is added. */
 .debug-body { margin-top: 0; }
 

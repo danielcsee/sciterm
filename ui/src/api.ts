@@ -392,6 +392,42 @@ export interface RagSearchResponse {
   aggregator: string
   chunks_considered: number
   papers: RagPaper[]
+  entity_matches: EntityMatchGroup[]
+  filtered_entity_matches: EntityStrategyGroup[]
+}
+
+export type EntityExtractionMethod = 'noun_phrase' | 'three_gram'
+export type EntityMatchMethod = 'trigram' | 'embedding'
+export type EntityMatchSource = 'entity_name' | 'mention_surface_text'
+
+export interface EntityMatch {
+  entity_id: number
+  identifier: string
+  entity_type: string
+  database: string
+  name: string | null
+  matched_text: string
+  score: number
+}
+
+export interface EntityMatchGroup {
+  query_fragment: string
+  extraction_method: EntityExtractionMethod
+  match_method: EntityMatchMethod
+  source: EntityMatchSource
+  matches: EntityMatch[]
+}
+
+export interface FilteredEntityMatch extends EntityMatch {
+  query_fragment: string
+}
+
+/** Filtered candidates pooled across fragments for one discovery path. */
+export interface EntityStrategyGroup {
+  extraction_method: EntityExtractionMethod
+  match_method: EntityMatchMethod
+  source: EntityMatchSource
+  matches: FilteredEntityMatch[]
 }
 
 /** Retrieval only — the backend runs no LLM, so this returns ranked papers. */

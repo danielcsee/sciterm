@@ -1,4 +1,4 @@
-import type { RagPaper } from './api'
+import type { EntityMatchGroup, EntityStrategyGroup, RagPaper } from './api'
 
 export type Role = 'user' | 'assistant'
 
@@ -14,5 +14,8 @@ export interface Message {
   results?: RagPaper[]
   /** How many chunks cleared the threshold, for an honest empty state. */
   chunksConsidered?: number
+  /** Experimental entity candidates, kept grouped by discovery path. */
+  entityMatches?: EntityMatchGroup[]
+  /** The same candidates after dedupe, per-strategy top-n and score cutoff. */
+  filteredEntityMatches?: EntityStrategyGroup[]
 }
-

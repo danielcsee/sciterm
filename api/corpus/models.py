@@ -8,6 +8,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from api.pb_client.models import SearchResult
+from api.entity_matching.models import EntityMatchGroup, EntityStrategyGroup
 
 #: Matches the frontend's infinite-scroll page size. Capped so one request
 #: cannot ask for the whole corpus.
@@ -139,6 +140,8 @@ class RagSearchResponse(BaseModel):
     aggregator: str
     chunks_considered: int
     papers: list[RagPaper] = Field(default_factory=list)
+    entity_matches: list[EntityMatchGroup] = Field(default_factory=list)
+    filtered_entity_matches: list[EntityStrategyGroup] = Field(default_factory=list)
 
 
 class ReferenceList(BaseModel):
