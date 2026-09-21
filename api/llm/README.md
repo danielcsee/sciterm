@@ -1,7 +1,7 @@
 # api/llm
 
-The OpenAI integration. Today it does one thing: routes each chat query to a
-single tool, and confirms which entity candidates the query names.
+The OpenAI integration. It routes each chat query to a single tool, confirms
+which entity candidates the query names, and writes `paper_analysis` answers.
 
 ```
 rag_search -> filter_entity_matches -> classify_intent -> IntentResult -> api.paper_search
@@ -12,7 +12,8 @@ rag_search -> filter_entity_matches -> classify_intent -> IntentResult -> api.pa
 | File | Purpose |
 |---|---|
 | `tools.py` | Pydantic argument models for `paper_search`, `paper_analysis`, `no_match`, and their tool schemas |
-| `client.py` | `LlmClient`: the Responses API call, forced to exactly one tool call |
+| `client.py` | `LlmClient`: a forced single tool call (`choose_tool`), or free text (`write_text`) |
+| `analysis.py` | The answer prompt: numbered passages in, prose citing `[n]` out |
 | `intent.py` | The prompt, candidate payload, and joining the model's entities back to candidates |
 | `models.py` | `IntentResult` / `IntentEntity`, returned on `RagSearchResponse.intent` |
 
@@ -34,8 +35,12 @@ Ids that were never offered are dropped.
 `intent` null and explains itself in `intent_error`; paper search still
 answers from the query's noun phrases.
 
+**Answers get their own budget.** `write_text` uses
+`OPENAI_ANALYSIS_TIMEOUT_SECONDS` (60s) and no retry: generation is slow, and a
+retry would double the wait.
+
 ## Dependencies
 
 `openai` (Responses API), `pydantic`, `api.entity_matching`, `api.app.config`
 (`OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_REASONING_EFFORT`,
-`OPENAI_TIMEOUT_SECONDS`).
+`OPENAI_TIMEOUT_SECONDS`, `OPENAI_ANALYSIS_TIMEOUT_SECONDS`).

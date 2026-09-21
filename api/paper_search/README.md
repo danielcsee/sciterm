@@ -1,6 +1,7 @@
 # api/paper_search
 
 Chooses the papers chat returns for `paper_search` and `paper_analysis`.
+`api.paper_analysis` then picks paragraphs from them, reusing the term weights.
 
 ```
 confirmed entities -> mentions per (paper, term)   \

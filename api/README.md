@@ -25,6 +25,7 @@ datastores and applies migrations.
 | [`entity_matching/`](entity_matching) | Entity candidates for chat queries |
 | [`llm/`](llm) | OpenAI: routes chat queries to a tool, resolves entities |
 | [`paper_search/`](paper_search) | Chooses chat's papers by entity coverage or full-text |
+| [`paper_analysis/`](paper_analysis) | Cited answers for `paper_analysis` from the best paragraphs |
 
 ## Dependencies
 
@@ -37,7 +38,7 @@ Declared in `requirements.txt`:
 - **celery[redis]** / **redis** — task queue, and the document cache
 - **sentence-transformers** — local chunk embeddings (BAAI/bge-base-en-v1.5)
 - **spaCy** / **en_core_web_sm** — noun-phrase extraction for entity candidates
-- **openai** — intent routing for chat queries (needs `OPENAI_API_KEY`)
+- **openai** — intent routing and cited answers for chat (needs `OPENAI_API_KEY`)
 - **tomli** — reads entity-match cutoffs on Python < 3.11 (stdlib `tomllib` after)
 
 Postgres and two Redis instances — broker and document cache — run in Docker

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from api.pb_client.models import SearchResult
 from api.entity_matching.models import EntityMatchGroup, EntityStrategyGroup
 from api.llm.models import IntentResult
+from api.paper_analysis import PaperAnalysisResult
 from api.paper_search import SearchedPaper, SearchMethod, SearchTermSummary
 
 #: Matches the frontend's infinite-scroll page size. Capped so one request
@@ -127,6 +128,8 @@ class RagSearchResponse(BaseModel):
     #: or failed; `intent_error` then says which, and search still answers.
     intent: Optional[IntentResult] = None
     intent_error: Optional[str] = None
+    #: `paper_analysis` only: the cited answer and its paragraphs.
+    analysis: Optional[PaperAnalysisResult] = None
 
 
 class ReferenceList(BaseModel):

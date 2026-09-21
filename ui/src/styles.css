@@ -330,6 +330,98 @@ body {
   color: var(--accent);
 }
 
+/* ---------- paper analysis ---------- */
+/* The answer is prose, so it keeps the message's line breaks. */
+.analysis-answer { line-height: 1.65; }
+
+/* An inline [n]: the accent colour marks it as clickable without a box that
+   would break up the sentence it sits in. */
+.citation-marker {
+  padding: 0 1px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82em;
+  font-weight: 620;
+  vertical-align: 0.18em;
+  cursor: pointer;
+}
+
+.citation-marker:hover { text-decoration: underline; }
+
+.citation-rows {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+/* One cited paragraph: number, section and why, then the paragraph's opening
+   on one line. The whole paragraph is the tooltip. */
+.citation-row {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.citation-row:hover,
+.citation-row:focus-visible { border-color: var(--accent); }
+
+.citation-row-number { color: var(--accent); font-weight: 620; flex: none; }
+
+.citation-row-section {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 620;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.citation-row-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fixed and script-placed like .entity-tip, and for the same reason: the chat
+   scrolls, and a child tooltip would be clipped by it. */
+.citation-tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  width: min(480px, calc(100vw - 16px));
+  max-height: 55vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgb(31 30 28 / 12%);
+  pointer-events: none;
+  white-space: normal;
+}
+
+.citation-tip-meta { font-size: 11px; font-weight: 620; color: var(--accent); }
+
+.citation-tip-text { font-size: 12.5px; line-height: 1.5; color: var(--text); }
+
 .debug-disclosure { margin-top: 18px; }
 
 .debug-toggle {
@@ -813,6 +905,15 @@ body {
   font-size: 15px;
   line-height: 1.72;
   hyphens: auto;
+}
+
+/* The paragraph a citation opened at: an accent rule in the margin, clear of
+   the text so the entity marks inside stay the only fill. */
+.paper-doc-focus {
+  margin-left: -14px;
+  padding-left: 12px;
+  border-left: 2px solid var(--accent);
+  scroll-margin-top: 24px;
 }
 
 .paper-doc-reflist {

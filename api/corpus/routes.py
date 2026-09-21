@@ -37,6 +37,7 @@ from api.entity_matching import (
 )
 from api.ingestion.embedding import embed_queries
 from api.llm import LlmError, classify_intent, get_llm_client
+from api.paper_analysis import answer_question, gather_evidence, query_entity_ids
 from api.paper_search import search_papers
 from api.pb_client import PubTatorClient
 from api.db import session_scope
@@ -95,13 +96,14 @@ def list_corpus(
 def rag_search(
     query: str = Query(..., min_length=2, description="Free-text question."),
 ) -> RagSearchResponse:
-    """Entity matching, OpenAI intent routing, then paper search. No generated answer yet.
+    """Entity matching, OpenAI intent routing, paper search, then maybe an answer.
 
     Candidate entities are matched from the query's fragments and filtered;
     OpenAI picks the tool the query calls for and confirms which candidates it
     names. `paper_search` and `paper_analysis` both run `api.paper_search`,
     which searches by the confirmed entities, or by the query's noun phrases
-    when there are none. `no_match` returns no papers.
+    when there are none. `paper_analysis` then answers from the papers' best
+    paragraphs, citing them. `no_match` returns no papers.
 
     Registered before `/corpus/{paper_id}`: FastAPI matches routes in order,
     and "rag_search" against an int path parameter is a 422.
@@ -115,6 +117,8 @@ def rag_search(
     _route_intent(result, text)
     if _wants_papers(result):
         _search_papers(result, fragments)
+    if _wants_analysis(result):
+        _analyze_papers(result)
     log.info(
         "rag_search %r -> tool %s, %s search over %d terms, %d of %d papers",
         text,
@@ -164,6 +168,16 @@ def _wants_papers(result: RagSearchResponse) -> bool:
     return result.intent is None or result.intent.tool != "no_match"
 
 
+def _wants_analysis(result: RagSearchResponse) -> bool:
+    """Only an explicit `paper_analysis` route, and only with papers to read."""
+    return (
+        result.intent is not None
+        and result.intent.tool == "paper_analysis"
+        and result.search_method is not None
+        and bool(result.papers)
+    )
+
+
 def _search_papers(result: RagSearchResponse, fragments: list[QueryFragment]) -> None:
     """Fill the paper fields of `result`. Its own session: routing may have
     held the request for seconds, and no connection should wait on OpenAI."""
@@ -182,6 +196,30 @@ def _search_papers(result: RagSearchResponse, fragments: list[QueryFragment]) ->
     result.search_method = found.method
     result.search_terms = found.terms
     result.papers_considered = found.papers_considered
+
+
+def _analyze_papers(result: RagSearchResponse) -> None:
+    """Fill `result.analysis`. The paragraphs are read in a session closed
+    before OpenAI is called, for the same reason as `_search_papers`."""
+    settings = get_settings()
+    assert result.search_method is not None  # guaranteed by _wants_analysis
+    with session_scope() as session:
+        evidence = gather_evidence(
+            session,
+            result.search_method,
+            result.search_terms,
+            result.papers,
+            dense_per_paper=settings.paper_analysis_dense_paragraphs,
+            duplicate_similarity=settings.paper_analysis_duplicate_similarity,
+        )
+    result.analysis = answer_question(
+        get_llm_client(),
+        result.query,
+        evidence,
+        result.papers,
+        query_entity_ids(result.search_terms),
+        timeout=settings.openai_analysis_timeout_seconds,
+    )
 
 
 @protected_router.get(
