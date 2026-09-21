@@ -12,9 +12,11 @@ import CorpusView from './components/CorpusView'
 import PaperTabs from './components/PaperTabs'
 import PaperView from './components/PaperView'
 import PaperExplorer, { type ReferenceTarget } from './components/PaperExplorer'
+import { GroupsView } from './groups'
 import {
   CHAT,
   CORPUS,
+  GROUPS,
   loadTabs,
   pathToView,
   sameView,
@@ -269,6 +271,14 @@ export default function App() {
           >
             My Corpus
           </button>
+          <button
+            type="button"
+            className={`tab${view.kind === 'groups' ? ' tab-active' : ''}`}
+            aria-current={view.kind === 'groups' ? 'page' : undefined}
+            onClick={() => navigate(GROUPS)}
+          >
+            My Groups
+          </button>
           {/* Only while locked. Once a code is accepted this disappears
               rather than turning into a "signed in" badge — there is no
               account to manage, so a persistent control would suggest one. */}
@@ -306,6 +316,8 @@ export default function App() {
             focus={focus?.paperId === view.paperId ? focus : null}
             onFocusApplied={clearFocus}
           />
+        ) : view.kind === 'groups' ? (
+          <GroupsView onClose={() => navigate(CHAT)} />
         ) : view.kind === 'corpus' ? (
           <CorpusView
             onClose={() => navigate(CHAT)}

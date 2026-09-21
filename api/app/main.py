@@ -16,6 +16,7 @@ from api.redis_conn import close_client as close_redis
 from api.corpus import protected_router as corpus_protected_router
 from api.corpus import router as corpus_router
 from api.entity_matching import get_cutoffs
+from api.groups import router as groups_router
 from api.ingestion import router as ingestion_router
 from api.ncbi import http as ncbi_http
 from api.pb_client import PubTatorClient
@@ -82,6 +83,7 @@ app.include_router(ingestion_router)
 # otherwise be matched by "/corpus/{paper_id}" and rejected as a bad integer.
 app.include_router(corpus_protected_router)
 app.include_router(corpus_router)
+app.include_router(groups_router)
 
 dist = settings.sciterm_ui_dist
 dev_ui_url = settings.sciterm_ui_dev_url

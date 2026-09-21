@@ -25,8 +25,10 @@ psycopg2, which is not installed.
 
 The access-control tables — `users`, `auth_sessions`, `free_access_codes` —
 live in [`api/auth/models.py`](../auth/models.py) instead, because they are
-that feature's schema and share nothing with the paper corpus. They use this
-`Base` and this migration chain, so `env.py` imports them for their side effect
+that feature's schema and share nothing with the paper corpus. The entity
+group tables live in [`api/groups/models.py`](../groups/models.py) for the
+same reason. They use this
+`Base` and this migration chain, so `env.py` imports both for their side effect
 on `Base.metadata`; forget that import and autogenerate proposes dropping
 them.
 

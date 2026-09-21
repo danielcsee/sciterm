@@ -22,7 +22,8 @@ datastores and applies migrations.
 | [`db/`](db) | SQLAlchemy models, session plumbing, and Alembic migrations |
 | [`ingestion/`](ingestion) | Celery import pipeline and the `/import` routes |
 | [`corpus/`](corpus) | Read-only `/corpus` listing of imported papers |
-| [`entity_matching/`](entity_matching) | Entity candidates for chat queries |
+| [`entity_matching/`](entity_matching) | Entity candidates for chat queries and type-ahead |
+| [`groups/`](groups) | Shared, named entity groups (`/groups`) |
 | [`llm/`](llm) | OpenAI: routes chat queries to a tool, resolves entities |
 | [`paper_search/`](paper_search) | Chooses chat's papers by entity coverage or full-text |
 | [`paper_analysis/`](paper_analysis) | Cited answers for `paper_analysis` from the best paragraphs |

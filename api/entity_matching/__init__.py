@@ -10,6 +10,7 @@ from api.entity_matching.models import (
     FilteredEntityMatch,
 )
 from api.entity_matching.search import EntityMatchManager
+from api.entity_matching.suggest import merge_suggestions
 
 __all__ = [
     "EntityMatch",
@@ -23,4 +24,5 @@ __all__ = [
     "filter_entity_matches",
     "get_cutoffs",
     "load_cutoffs",
+    "merge_suggestions",
 ]
