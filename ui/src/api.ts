@@ -332,6 +332,9 @@ export interface PaperEntityList {
   entities: PaperEntity[]
 }
 
+/** What `entityLabel` reads: a paper's entity and a group's entity both fit. */
+export type EntityLabelSource = Pick<PaperEntity, 'identifier' | 'name' | 'names'>
+
 /**
  * The best short label for an entity.
  *
@@ -339,7 +342,7 @@ export interface PaperEntityList {
  * come through as "9685" — in which case the paper's own most common wording is
  * both correct and readable.
  */
-export function entityLabel(entity: PaperEntity): string {
+export function entityLabel(entity: EntityLabelSource): string {
   const local = entity.identifier.includes(':')
     ? entity.identifier.slice(entity.identifier.indexOf(':') + 1)
     : entity.identifier

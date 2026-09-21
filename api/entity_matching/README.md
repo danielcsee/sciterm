@@ -21,6 +21,12 @@ queries), then drops anything under that matcher's cutoff. The cutoffs live in
 `cutoffs.toml`, one per matcher because the scores are on different scales;
 `cutoffs.py` validates the file and the API reads it once at startup.
 
+`suggest.py` serves the Smart Groups type-ahead (`/entities/suggest`). The
+chat filter's per-word limit and whole-word cutoffs reject partial input, so
+it instead merges the manager's raw groups one candidate per entity, in
+strategy priority order — trigram before embedding, names before mentions —
+since the two score scales cannot be sorted together.
+
 Mention vectors live in `entity_mention_embeddings` rather than widening the
 source annotation table. The table stores one vector per distinct,
 case-sensitive `surface_text`; retrieval joins the form back to the distinct

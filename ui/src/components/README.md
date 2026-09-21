@@ -151,6 +151,13 @@ Scrolling to the first match is instant, not smooth: the first mention can be
 thousands of pixels away, and `behavior: 'smooth'` measured as a no-op in the
 test browser, so it would have silently done nothing.
 
+## `EntityChip.tsx`
+
+An entity as a static oval, sharing `PaperEntities`' pill styling
+(`.entity-pill, .entity-chip`). A pill is itself a button; a chip is inert,
+with an optional 'x' (`onRemove`) that carries the hover affordance. Used by
+[`../groups`](../groups).
+
 ## `PaperTabs.tsx`
 
 The **scrolling** half of the tab bar, separate so the My Corpus tab stays put.

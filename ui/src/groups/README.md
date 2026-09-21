@@ -1,0 +1,38 @@
+# ui/src/groups
+
+The My Groups page (`/my-groups`): shared, named sets of corpus entities.
+
+## Files
+
+**`GroupsView.tsx`** — the page. "+ New Group" opens `GroupBuilder`; saved
+groups follow as `GroupTile`s, newest first; clicking one opens
+`EditGroupModal`.
+
+**`GroupBuilder.tsx`** — type-ahead with Save Group beside it, chosen entities
+as removable `EntityChip`s beneath. Save is disabled while empty and opens
+`SaveGroupModal` for the name.
+
+**`EditGroupModal.tsx`** — rename, add/remove entities, or delete (the button
+asks once more in place). Nothing is written until Save.
+
+**`GroupTile.tsx`** — fixed 192×164 tiles, five to a row at 1440px. Chips that
+would be cut off are measured and hidden whole; the footer says "+N more".
+
+**`EntityTypeahead.tsx`** / **`useEntitySuggestions.ts`** — an ARIA combobox
+over `/entities/suggest`. 250 ms debounce, three characters minimum, and each
+keystroke aborts the request in flight. The previous results stay up while the
+next load, so the list does not flicker.
+
+**`useModalDialog.ts`** — native `<dialog>` handling shared by both modals,
+as in `AccessCodeModal`, whose `code-*` classes they reuse for a matching look.
+
+**`api.ts`** — the `/groups` and `/entities/suggest` client, mirroring
+`api/groups/schemas.py`.
+
+Duplicate names come back from the server as a 409 and show under the name
+field; the server compares names ignoring case.
+
+## Dependencies
+
+React, `../api` (`ApiError`, `entityLabel`), `../auth` (`authFetch`), and
+`../components/EntityChip`.

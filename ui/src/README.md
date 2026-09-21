@@ -2,7 +2,7 @@
 
 Application source. The layout is flat: an entry point, a root component,
 shared types, navigation, import tracking, the API client, plus
-[`auth/`](auth) and [`components/`](components).
+[`auth/`](auth), [`components/`](components) and [`groups/`](groups).
 
 ## Files
 
@@ -15,8 +15,8 @@ closed: that is how "go back to where I was" works. `handleSend` calls
 `/corpus/rag_search`; the backend runs no LLM, so answers are ranked evidence.
 
 **`navigation.ts`** — `View`, the tab model, title truncation, the view↔URL
-mapping, and `loadTabs`/`saveTabs`. The corpus UI route is `/my-corpus`, clear
-of the `/corpus` API path. Open tabs persist to `localStorage`; the active view
+mapping, and `loadTabs`/`saveTabs`. The corpus and groups UI routes are
+`/my-corpus` and `/my-groups`, clear of the `/corpus` and `/groups` API paths. Open tabs persist to `localStorage`; the active view
 does not, since the URL carries it. Reads are validated and access guarded —
 the store throws outright in a private window.
 
@@ -33,6 +33,9 @@ goes through `authFetch` from [`auth/`](auth), which attaches the access token
 and retries once through `/auth/refresh` on a 401.
 
 **`types.ts`** — shared UI types. API payload types live in `api.ts`.
+
+**`groups/`** — the My Groups page: saved entity groups, the type-ahead that
+builds them, and their `/groups` API client. See its [README](groups).
 
 **`auth/`** — the access-code gate: token store, `useAuth()`, and the modal.
 The app loads whole for everyone; this decides which controls work. See its
