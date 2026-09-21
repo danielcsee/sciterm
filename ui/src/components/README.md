@@ -14,6 +14,8 @@ paths visibly separate so retrieval quality can be compared. It is wrapped in
 `DebugDisclosure`, so the candidates stay collapsed until asked for. Inside it,
 nested disclosures separate "Raw Candidates" from the server's "Filtered
 Candidates", which pool fragments per strategy and name each match's fragment.
+A third, "OpenAI Entities", renders `IntentEntityList`: the candidates OpenAI
+confirmed, each with the query phrase that named it.
 
 ## `DebugDisclosure.tsx`
 

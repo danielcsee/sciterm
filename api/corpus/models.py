@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from api.pb_client.models import SearchResult
 from api.entity_matching.models import EntityMatchGroup, EntityStrategyGroup
+from api.llm.models import IntentResult
 
 #: Matches the frontend's infinite-scroll page size. Capped so one request
 #: cannot ask for the whole corpus.
@@ -142,6 +143,10 @@ class RagSearchResponse(BaseModel):
     papers: list[RagPaper] = Field(default_factory=list)
     entity_matches: list[EntityMatchGroup] = Field(default_factory=list)
     filtered_entity_matches: list[EntityStrategyGroup] = Field(default_factory=list)
+    #: The tool OpenAI routed the query to. Null when routing is unconfigured
+    #: or failed; `intent_error` then says which, and retrieval still answers.
+    intent: Optional[IntentResult] = None
+    intent_error: Optional[str] = None
 
 
 class ReferenceList(BaseModel):

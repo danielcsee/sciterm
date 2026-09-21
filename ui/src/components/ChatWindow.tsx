@@ -4,6 +4,7 @@ import RagResults from './RagResults'
 import type { Message } from '../types'
 import EntityMatchResults from './EntityMatchResults'
 import DebugDisclosure from './DebugDisclosure'
+import IntentEntityList from './IntentEntityList'
 
 const EXAMPLES = [
   'What is known about BRCA1 and DNA repair?',
@@ -124,6 +125,11 @@ export default function ChatWindow({ messages, onSend, onOpenPaper }: Props) {
                           <DebugDisclosure label="Filtered Candidates">
                             <EntityMatchResults groups={message.filteredEntityMatches ?? []} />
                           </DebugDisclosure>
+                          {message.intentEntities && (
+                            <DebugDisclosure label="OpenAI Entities">
+                              <IntentEntityList entities={message.intentEntities} />
+                            </DebugDisclosure>
+                          )}
                         </DebugDisclosure>
                       )}
                     </>

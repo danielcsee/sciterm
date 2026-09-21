@@ -43,12 +43,14 @@ against `paper_references.ref_pmid` and returns only citing papers whose final
 import stage is done. It never calls PubTator and does not require the access
 gate.
 
-**Retrieval is LLM-free.** Chunks below `RAG_SCORE_THRESHOLD` are dropped,
+**Retrieval is LLM-free; routing is not.** Chunks below `RAG_SCORE_THRESHOLD` are dropped,
 survivors summed per paper, top three returned with their best excerpts. The
 same response includes experimental entity candidates grouped by extraction,
 matching method, and searched source. The aggregator is a named function;
-`AGGREGATORS` also holds `max` and `mean`.
+`AGGREGATORS` also holds `max` and `mean`. After retrieval, `api.llm` asks
+OpenAI which tool the query calls for and which filtered candidates it names;
+that lands in `intent`, or `intent_error` if it could not run.
 
 ## Dependencies
 
-`api.db`, `api.pb_client`, `api.ncbi`, `api.ingestion.embedding`, `fastapi`, `pydantic`.
+`api.db`, `api.pb_client`, `api.ncbi`, `api.ingestion.embedding`, `api.entity_matching`, `api.llm`, `fastapi`, `pydantic`.

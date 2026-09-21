@@ -1,4 +1,4 @@
-import type { EntityMatchGroup, EntityStrategyGroup, RagPaper } from './api'
+import type { EntityMatchGroup, EntityStrategyGroup, IntentEntity, RagPaper } from './api'
 
 export type Role = 'user' | 'assistant'
 
@@ -18,4 +18,6 @@ export interface Message {
   entityMatches?: EntityMatchGroup[]
   /** The same candidates after dedupe, per-strategy top-n and score cutoff. */
   filteredEntityMatches?: EntityStrategyGroup[]
+  /** Candidates OpenAI confirmed; undefined when intent routing did not run. */
+  intentEntities?: IntentEntity[]
 }

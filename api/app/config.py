@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Optional
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # api/app/config.py -> api/app -> api -> repo root
@@ -87,6 +88,17 @@ class Settings(BaseSettings):
     #: which is "mps" on Apple silicon. Set to "cpu" when the worker must run
     #: in a forked process — Metal cannot be initialised after fork.
     embedding_device: Optional[str] = None
+
+    # --- OpenAI (intent routing in chat) ---
+    #: Unset leaves chat working without intent routing, so the Celery worker
+    #: -- which never calls OpenAI -- needs no key in its environment.
+    openai_api_key: Optional[SecretStr] = None
+    #: Routing is a small classification task; a mini model keeps it cheap.
+    openai_model: str = "gpt-5-mini"
+    #: Only sent when set, since non-reasoning models reject the parameter.
+    openai_reasoning_effort: Optional[Literal["minimal", "low", "medium", "high"]] = "low"
+    #: Chat blocks on this call, so fail fast rather than hang the answer.
+    openai_timeout_seconds: float = 20.0
 
     # --- Environment ---
     #: "local" runs the app wide open, exactly as it behaved before auth
