@@ -242,7 +242,7 @@ export default function App() {
           onSelect={(paperId) => navigate({ kind: 'paper', paperId })}
           onClose={closePaper}
         />
-        <span className="brand-tagline">GraphRAG over scientific literature</span>
+        <span className="brand-tagline">LLM for your chosen scientific literature</span>
       </header>
 
       <main className="layout">
