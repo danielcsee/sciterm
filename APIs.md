@@ -6,9 +6,9 @@ three services are NCBI's, which rate-limits them as a whole, so they draw on
 [`api/ncbi/http.py`](api/ncbi/http.py). The budget is a single Redis key, so it
 holds across the web process and every Celery worker, not just within one.
 
-Nothing else is called. There are no API keys: both services are open, and
-`NCBI_CONTACT_EMAIL` — if set — is appended to the `User-Agent` and is the only
-thing we volunteer about ourselves.
+Besides NCBI, only OpenAI is called (see the end of this file). NCBI needs no
+API keys, and `NCBI_CONTACT_EMAIL` — if set — is appended to the `User-Agent`
+and is the only thing we volunteer about ourselves.
 
 Export responses are cached for 24h by PMID (see [`api/cache`](api/cache)), so a
 request listed below may not reach NCBI at all. Full-text documents only, and
@@ -144,3 +144,30 @@ bucket do not already give.
 
 See [`pmcid vs pmid.txt`](pmcid%20vs%20pmid.txt) for the measurements behind the
 id constraints.
+
+---
+
+## OpenAI
+
+Base: `https://api.openai.com/v1` (the `openai` SDK's default)
+Client: [`api/llm/client.py`](api/llm/client.py) → called from `/corpus/rag_search`
+
+### `POST /responses`
+
+One call per chat query, via `client.responses.parse`. Authenticated with
+`OPENAI_API_KEY`; unset, the call is skipped and chat runs without routing.
+
+| Param | Value |
+|---|---|
+| `model` | `OPENAI_MODEL`, default `gpt-5-mini` |
+| `instructions` | The routing prompt in `api/llm/intent.py` |
+| `input` | JSON: `{query, candidate_entities: [{id, name, type, matched_text}]}` |
+| `tools` | `paper_search`, `paper_analysis`, `no_match` — strict schemas from Pydantic |
+| `tool_choice` | `required`, with `parallel_tool_calls: false` — exactly one call |
+| `reasoning.effort` | `OPENAI_REASONING_EFFORT`, default `low`; omitted when unset |
+| `store` | `false` — nothing is retained for later retrieval |
+
+Response: one `function_call` item whose arguments carry
+`entities: [{entity_id, phrase}]` (plus `reason` for `no_match`). Ids that were
+not offered as candidates are dropped. Measured at ~3–5s per call with
+`gpt-5-mini` at `low` effort. Timeout `OPENAI_TIMEOUT_SECONDS` (20s), one retry.

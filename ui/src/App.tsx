@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ApiError, ragSearch, type PaperDetail } from './api'
+import { ApiError, ragSearch, type PaperDetail, type RagSearchResponse } from './api'
 import { useAuth } from './auth'
 import ChatWindow from './components/ChatWindow'
 import CorpusView from './components/CorpusView'
@@ -20,6 +20,12 @@ import {
   type View,
 } from './navigation'
 import type { Message } from './types'
+
+/** For now the answer is just the routed tool's name, or why there is none. */
+function intentText(response: RagSearchResponse): string {
+  if (response.intent) return `Tool: ${response.intent.tool}`
+  return `Tool: none (${response.intent_error ?? 'intent routing did not run'})`
+}
 
 export default function App() {
   const { unlocked, promptForCode, requireAuth } = useAuth()
@@ -167,8 +173,8 @@ export default function App() {
   }, [])
 
   /**
-   * Ask the corpus. Retrieval only — the backend runs no LLM, so the answer is
-   * the ranked evidence rather than prose.
+   * Ask the corpus. The answer is the tool OpenAI routed the query to, above
+   * the ranked evidence — no prose is generated yet.
    *
    * The assistant message is appended immediately in a pending state and then
    * filled in, so the question and a spinner appear at once instead of the
@@ -193,11 +199,12 @@ export default function App() {
       const response = await ragSearch(text)
       replace({
         status: 'done',
-        text: '',
+        text: intentText(response),
         results: response.papers,
         chunksConsidered: response.chunks_considered,
         entityMatches: response.entity_matches,
         filteredEntityMatches: response.filtered_entity_matches,
+        intentEntities: response.intent?.entities,
       })
     } catch (err) {
       replace({
@@ -209,6 +216,7 @@ export default function App() {
         results: undefined,
         entityMatches: undefined,
         filteredEntityMatches: undefined,
+        intentEntities: undefined,
       })
     }
   }

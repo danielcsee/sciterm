@@ -394,6 +394,27 @@ export interface RagSearchResponse {
   papers: RagPaper[]
   entity_matches: EntityMatchGroup[]
   filtered_entity_matches: EntityStrategyGroup[]
+  /** The tool OpenAI routed the query to; null when routing is off or failed. */
+  intent: IntentResult | null
+  intent_error: string | null
+}
+
+export type IntentToolName = 'paper_search' | 'paper_analysis' | 'no_match'
+
+/** A candidate entity OpenAI confirmed, with the query phrase that named it. */
+export interface IntentEntity {
+  entity_id: number
+  identifier: string
+  entity_type: string
+  name: string | null
+  phrase: string
+}
+
+export interface IntentResult {
+  tool: IntentToolName
+  entities: IntentEntity[]
+  reason: string | null
+  model: string
 }
 
 export type EntityExtractionMethod = 'noun_phrase' | 'three_gram'
@@ -430,7 +451,7 @@ export interface EntityStrategyGroup {
   matches: FilteredEntityMatch[]
 }
 
-/** Retrieval only — the backend runs no LLM, so this returns ranked papers. */
+/** Ranked papers, plus the tool OpenAI routed the query to. */
 export async function ragSearch(
   query: string,
   signal?: AbortSignal,

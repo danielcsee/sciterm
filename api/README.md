@@ -22,6 +22,8 @@ datastores and applies migrations.
 | [`db/`](db) | SQLAlchemy models, session plumbing, and Alembic migrations |
 | [`ingestion/`](ingestion) | Celery import pipeline and the `/import` routes |
 | [`corpus/`](corpus) | Read-only `/corpus` listing of imported papers |
+| [`entity_matching/`](entity_matching) | Entity candidates for chat queries |
+| [`llm/`](llm) | OpenAI: routes chat queries to a tool, resolves entities |
 
 ## Dependencies
 
@@ -34,6 +36,7 @@ Declared in `requirements.txt`:
 - **celery[redis]** / **redis** — task queue, and the document cache
 - **sentence-transformers** — local chunk embeddings (BAAI/bge-base-en-v1.5)
 - **spaCy** / **en_core_web_sm** — noun-phrase extraction for entity candidates
+- **openai** — intent routing for chat queries (needs `OPENAI_API_KEY`)
 
 Postgres and two Redis instances — broker and document cache — run in Docker
 (`docker-compose.yml` at the root).

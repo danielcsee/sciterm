@@ -35,6 +35,6 @@ does not need them yet.
 
 ## Notes
 
-The chat pane is a shell: `App.tsx` answers every message with a fixed
-placeholder, because the retrieval pipeline is not wired up. The sidebar search
-is real and calls `/pb/search`.
+The chat pane calls `/corpus/rag_search`. Each answer names the tool OpenAI
+routed the query to (`Tool: paper_analysis`) above the ranked papers; no prose
+is generated yet. The sidebar search calls `/pb/search`.

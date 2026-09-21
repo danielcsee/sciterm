@@ -34,6 +34,7 @@ from api.entity_matching import (
     filter_entity_matches,
 )
 from api.ingestion.embedding import embed_queries
+from api.llm import LlmError, classify_intent, get_llm_client
 from api.pb_client import PubTatorClient
 from api.db import session_scope
 
@@ -91,11 +92,13 @@ def list_corpus(
 def rag_search(
     query: str = Query(..., min_length=2, description="Free-text question."),
 ) -> RagSearchResponse:
-    """Retrieval only: no LLM, no generated answer.
+    """Retrieval, plus OpenAI intent routing. No generated answer yet.
 
     Every stored chunk is scored against the query, anything below
     `rag_score_threshold` is discarded, the survivors are aggregated per paper,
-    and the best few papers come back with their strongest excerpts.
+    and the best few papers come back with their strongest excerpts. OpenAI
+    then picks the tool the query calls for and confirms which entity
+    candidates it names.
 
     Registered before `/corpus/{paper_id}`: FastAPI matches routes in order,
     and "rag_search" against an int path parameter is a 422.
@@ -123,15 +126,30 @@ def rag_search(
             trigram_threshold=settings.entity_match_trigram_threshold,
         ).search(fragments, vectors[1:])
     result.filtered_entity_matches = filter_entity_matches(result.entity_matches, text)
+    _route_intent(result, text)
     log.info(
-        "rag_search %r -> %d papers from %d chunks and %d entity paths over %.2f",
+        "rag_search %r -> %d papers from %d chunks and %d entity paths over %.2f, tool %s",
         text,
         len(result.papers),
         result.chunks_considered,
         len(result.entity_matches),
         result.threshold,
+        result.intent.tool if result.intent else None,
     )
     return result
+
+
+def _route_intent(result: RagSearchResponse, text: str) -> None:
+    """Fill `result.intent`, or `intent_error` — never fail the search itself."""
+    client = get_llm_client()
+    if client is None:
+        result.intent_error = "OpenAI is not configured (OPENAI_API_KEY is unset)"
+        return
+    try:
+        result.intent = classify_intent(client, text, result.filtered_entity_matches)
+    except LlmError as exc:
+        log.warning("intent routing failed for %r: %s", text, exc)
+        result.intent_error = str(exc)
 
 
 @protected_router.get(
