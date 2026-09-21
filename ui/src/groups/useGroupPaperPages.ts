@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError } from '../api'
-import { fetchGroupPapers, type PaperSubgroup, type SortOrder } from './api'
+import { fetchEntityPapers, type PaperSubgroup, type SortOrder } from './api'
 
 export interface GroupPaperPages {
   subgroups: PaperSubgroup[]
@@ -15,11 +15,16 @@ export interface GroupPaperPages {
 }
 
 /**
- * Pages of a group's subgroups, appended as the reader scrolls. Changing
- * `order` starts over from page 1: the server sorts, so earlier pages no
- * longer fit the new order.
+ * Pages of subgroups for papers mentioning any of `entityIds`, appended as the
+ * reader scrolls. Changing `order` or the entities starts over from page 1:
+ * the server sorts, so earlier pages no longer fit. No entities, no request.
  */
-export function useGroupPaperPages(groupId: number, order: SortOrder): GroupPaperPages {
+export function useGroupPaperPages(
+  entityIds: readonly number[],
+  order: SortOrder,
+): GroupPaperPages {
+  // A string, so a new array holding the same ids does not refetch.
+  const idsKey = entityIds.join(',')
   const [subgroups, setSubgroups] = useState<PaperSubgroup[]>([])
   const [page, setPage] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
@@ -34,11 +39,23 @@ export function useGroupPaperPages(groupId: number, order: SortOrder): GroupPape
       abortRef.current?.abort()
       const controller = new AbortController()
       abortRef.current = controller
+      const ids = parseIds(idsKey)
+      if (ids.length === 0) {
+        // Back to "nothing loaded": page 0 hides the count and the empty message.
+        setSubgroups([])
+        setPage(0)
+        setTotalPages(0)
+        setTotalPapers(0)
+        setTotalSubgroups(0)
+        setError(null)
+        setLoading(false)
+        return
+      }
 
       setLoading(true)
       setError(null)
       try {
-        const response = await fetchGroupPapers(groupId, order, nextPage, controller.signal)
+        const response = await fetchEntityPapers(ids, order, nextPage, controller.signal)
         setPage(response.page)
         setTotalPages(response.total_pages)
         setTotalPapers(response.total_papers)
@@ -54,7 +71,7 @@ export function useGroupPaperPages(groupId: number, order: SortOrder): GroupPape
         if (!controller.signal.aborted) setLoading(false)
       }
     },
-    [groupId, order],
+    [idsKey, order],
   )
 
   useEffect(() => {
@@ -86,4 +103,8 @@ function appendSubgroups(prev: PaperSubgroup[], next: PaperSubgroup[]): PaperSub
     .map((group) => ({ ...group, papers: group.papers.filter((p) => !seen.has(p.paper_id)) }))
     .filter((group) => group.papers.length > 0)
   return [...prev, ...fresh]
+}
+
+function parseIds(key: string): number[] {
+  return key === '' ? [] : key.split(',').map(Number)
 }

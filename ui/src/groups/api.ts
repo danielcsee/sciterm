@@ -1,5 +1,5 @@
 /**
- * Typed access to `/groups`, `/groups/{id}/papers`, and `/entities/suggest`,
+ * Typed access to `/groups`, `/entities/papers`, and `/entities/suggest`,
  * mirroring `api/groups/schemas.py` and `api/group_search/schemas.py` —
  * changing one means changing the other.
  */
@@ -54,9 +54,7 @@ export interface PaperSubgroup {
 }
 
 /** One page of whole subgroups; `page_size` counts subgroups, not papers. */
-export interface GroupPaperPage {
-  group_id: number
-  group_name: string
+export interface EntityPaperPage {
   order: SortOrder
   page: number
   page_size: number
@@ -122,16 +120,21 @@ export async function deleteGroup(groupId: number): Promise<void> {
   if (!response.ok) throw await apiError(response, 'could not delete the group')
 }
 
-export async function fetchGroupPapers(
-  groupId: number,
+/**
+ * Papers mentioning any of the entities, in subgroups. The results page always
+ * searches by entity list, saved or not, so an edit needs no second path.
+ */
+export async function fetchEntityPapers(
+  entityIds: readonly number[],
   order: SortOrder,
   page: number,
   signal?: AbortSignal,
-): Promise<GroupPaperPage> {
+): Promise<EntityPaperPage> {
   const params = new URLSearchParams({ order, page: String(page) })
-  const response = await authFetch(`/groups/${groupId}/papers?${params}`, { signal })
-  if (!response.ok) throw await apiError(response, 'could not search the group')
-  return (await response.json()) as GroupPaperPage
+  for (const id of entityIds) params.append('entity_ids', String(id))
+  const response = await authFetch(`/entities/papers?${params}`, { signal })
+  if (!response.ok) throw await apiError(response, 'could not search these entities')
+  return (await response.json()) as EntityPaperPage
 }
 
 export async function suggestEntities(

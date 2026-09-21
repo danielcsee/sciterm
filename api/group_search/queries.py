@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-#: Every imported paper mentioning at least one of the group's entities, with
-#: how many distinct group entities it mentions and the mean of its paragraph
+#: Every imported paper mentioning at least one of the given entities, with
+#: how many distinct entities it mentions and the mean of its paragraph
 #: embeddings. Distinct entities, not mentions: a raw mention count favours
 #: long papers. The mean is null for a paper with no embedded chunks.
 #:
 #: `real[]` rather than `vector` so the driver returns plain floats without
 #: registering pgvector's type adapter.
-GROUP_PAPERS_SQL = """
+ENTITY_PAPERS_SQL = """
 WITH matches AS (
     SELECT pem.paper_id, count(DISTINCT pem.entity_id) AS match_count
-    FROM entity_group_members m
-    JOIN paper_entity_mentions pem ON pem.entity_id = m.entity_id
+    FROM paper_entity_mentions pem
     JOIN paper_stage_runs r
       ON r.paper_id = pem.paper_id AND r.stage = :final_stage AND r.status = 'done'
-    WHERE m.group_id = :group_id
+    WHERE pem.entity_id = ANY(CAST(:entity_ids AS bigint[]))
     GROUP BY pem.paper_id
 )
 SELECT matches.paper_id, matches.match_count,
@@ -41,4 +40,8 @@ FROM (
 
 GROUP_NAME_SQL = """
 SELECT name FROM entity_groups WHERE id = :group_id
+"""
+
+GROUP_ENTITY_IDS_SQL = """
+SELECT entity_id FROM entity_group_members WHERE group_id = :group_id
 """
