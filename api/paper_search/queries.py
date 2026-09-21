@@ -97,7 +97,7 @@ WHERE id = ANY(CAST(:paper_ids AS bigint[]))
 
 #: Each paper's abstract prose in reading order. Structured abstracts arrive as
 #: several chunks, with their headings ("Background") as `abstract_title_1`
-#: chunks of their own; those are left out so the preview reads as prose.
+#: chunks of their own; those are left out so the abstract reads as prose.
 ABSTRACTS_SQL = """
 SELECT paper_id, string_agg(text, ' ' ORDER BY ordinal) AS abstract
 FROM paper_chunks

@@ -390,8 +390,8 @@ export interface SearchedPaper {
   score: number
   /** Why the paper earned a slot, e.g. "broadest coverage". */
   selected_by: string[]
-  /** First 300 characters of the abstract, ellipsised when cut. */
-  abstract_preview: string | null
+  /** Full abstract prose; the UI shortens it for display. */
+  abstract: string | null
   chunks: EvidenceChunk[]
 }
 

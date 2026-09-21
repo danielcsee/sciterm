@@ -20,7 +20,6 @@ from api.paper_search.models import (
     SearchTermSummary,
     TermHit,
 )
-from api.paper_search.preview import abstract_preview
 from api.paper_search.ranking import (
     common_terms,
     document_frequencies,
@@ -119,7 +118,7 @@ def _build_papers(
     scored_terms: Sequence[SearchTerm],
     chunks_per_paper: int,
 ) -> list[SearchedPaper]:
-    """Attach metadata, abstract previews and evidence passages to the selected papers."""
+    """Attach metadata, abstracts and evidence passages to the selected papers."""
     paper_ids = [score.paper_id for score, _ in selected]
     metadata = manager.papers(paper_ids)
     abstracts = manager.abstracts(paper_ids)
@@ -132,7 +131,7 @@ def _build_papers(
             metadata[score.paper_id],
             score,
             reasons,
-            abstract_preview(abstracts.get(score.paper_id)),
+            abstracts.get(score.paper_id),
             chunks.get(score.paper_id, []),
         )
         for score, reasons in selected
@@ -143,7 +142,7 @@ def _searched_paper(
     metadata: PaperMetadata,
     score: PaperScore,
     reasons: list[str],
-    preview: str | None,
+    abstract: str | None,
     chunks: list[EvidenceChunk],
 ) -> SearchedPaper:
     return SearchedPaper(
@@ -157,6 +156,6 @@ def _searched_paper(
         mentions=score.mentions,
         score=round(score.score, 6),
         selected_by=reasons,
-        abstract_preview=preview,
+        abstract=abstract,
         chunks=chunks,
     )

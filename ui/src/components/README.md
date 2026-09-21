@@ -23,6 +23,13 @@ An inline toggle, labelled "Debug" unless `label` says otherwise, with a caret t
 open. Open/closed state is local, so toggling never re-runs `ChatWindow`'s
 auto-scroll (which watches `messages`) and the view stays put.
 
+## `ExpandableText.tsx`
+
+Text folded to its first 300 characters and an ellipsis, with a "More" toggle
+styled like `DebugDisclosure` that reveals the rest. Closed by default; text
+that already fits shows whole, without a toggle. The chat results use it for
+each paper's abstract and for the passage that got the paper picked.
+
 ## `PaperExplorer.tsx`
 
 The right-hand panel. Owns import state so `SearchPubTator` and
