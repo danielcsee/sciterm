@@ -12,6 +12,9 @@ const API_PATTERNS = [
   '^/import(/|\\?|$)',
   '^/corpus(/|\\?|$)',
   '^/api(/|\\?|$)',
+  '^/auth(/|\\?|$)',
+  '^/admin(/|\\?|$)',
+  '^/health(/|\\?|$)',
 ]
 
 const target = `http://127.0.0.1:${process.env.API_PORT ?? 8000}`
