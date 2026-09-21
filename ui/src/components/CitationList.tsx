@@ -33,8 +33,8 @@ export function groupByPaper(citations: Citation[], papers: SearchedPaper[]): Ci
 /**
  * The paragraphs an answer was grounded in, one paper preview per paper with
  * its cited paragraphs quoted beneath, folded to 300 characters like the
- * search previews. Each quote's heading is a citation marker: hover shows the
- * whole paragraph, click opens the paper at it.
+ * search previews. Each quote's heading is a citation marker that opens the
+ * paper at it. It shows no tooltip: the quote below already holds the text.
  */
 export default function CitationList({ citations, papers, onOpenPaper, onOpenCitation }: Props) {
   return (
@@ -52,6 +52,7 @@ export default function CitationList({ citations, papers, onOpenPaper, onOpenCit
                   citation={citation}
                   onOpen={onOpenCitation}
                   className="citation-heading"
+                  showTip={false}
                 >
                   {[
                     `[${citation.number}]`,

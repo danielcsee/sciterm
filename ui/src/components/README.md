@@ -23,13 +23,13 @@ disclosure (open by default) above Debug, in place of the result list.
 ## `AnalysisAnswer.tsx`, `CitationList.tsx`, `CitationMarker.tsx`
 
 The answer's `[n]` become `CitationMarker`s; a number the response did not
-supply stays literal text. `CitationList` groups citations under their paper,
-one `PaperPreview` each, quoting each cited paragraph folded to 300 characters
-by `ExpandableText`; the quote's heading is the marker. A marker shows the
-whole paragraph in a fixed tooltip on hover or focus (placed like
-`PaperEntities`' tooltip), and a click opens the paper at that paragraph with
-the query's entities highlighted. Touch screens have no hover, so a tap opens
-the paper directly.
+supply stays literal text. Hovering or focusing one shows the whole paragraph
+in a fixed tooltip, placed like `PaperEntities`' tooltip. `CitationList`
+groups citations under their paper, one `PaperPreview` each, quoting each cited
+paragraph folded to 300 characters by `ExpandableText`. The quote's heading is
+also a marker, but with `showTip={false}`: the text is already right there.
+Clicking any marker opens the paper at that paragraph with the query's
+entities highlighted. Touch screens have no hover, so a tap opens it directly.
 
 ## `PaperPreview.tsx`
 

@@ -8,6 +8,8 @@ interface Props {
   /** Visible content; defaults to "[n]". */
   children?: ReactNode
   className?: string
+  /** Show the paragraph on hover and focus. Off where the text is already shown. */
+  showTip?: boolean
 }
 
 /** Viewport box of the marker the tooltip describes. */
@@ -22,14 +24,20 @@ interface Anchor {
 const TIP_GAP = 8
 
 /**
- * A citation: hovering or focusing shows the cited paragraph, clicking opens
- * the paper scrolled to it.
+ * A citation: hovering or focusing shows the cited paragraph (unless
+ * `showTip` is off), clicking opens the paper scrolled to it.
  *
  * The tooltip is `position: fixed` and placed in a layout effect, as in
  * `PaperEntities`: the chat scrolls, and an absolutely-positioned child would
  * be clipped by it. It sits above the marker, or below when there is no room.
  */
-export default function CitationMarker({ citation, onOpen, children, className }: Props) {
+export default function CitationMarker({
+  citation,
+  onOpen,
+  children,
+  className,
+  showTip = true,
+}: Props) {
   const [anchor, setAnchor] = useState<Anchor | null>(null)
   const tipRef = useRef<HTMLDivElement>(null)
 
@@ -52,6 +60,7 @@ export default function CitationMarker({ citation, onOpen, children, className }
   }, [anchor])
 
   function show(element: HTMLElement) {
+    if (!showTip) return
     const box = element.getBoundingClientRect()
     setAnchor({ left: box.left, right: box.right, top: box.top, bottom: box.bottom })
   }
