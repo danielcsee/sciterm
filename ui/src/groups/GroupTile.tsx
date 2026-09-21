@@ -5,7 +5,7 @@ import type { EntityGroup } from './api'
 
 interface Props {
   group: EntityGroup
-  /** Searches for the group's papers: a click anywhere on the tile, or the arrow. */
+  /** Searches for the group's papers: a click anywhere on the tile, or Search. */
   onSearch: () => void
   onEdit: () => void
 }
@@ -42,6 +42,7 @@ export default function GroupTile({ group, onSearch, onEdit }: Props) {
           aria-label={`Search papers in ${group.name}`}
           title={`Search papers in ${group.name}`}
         >
+          Search
           <OutgoingArrowIcon />
         </button>
       </span>
