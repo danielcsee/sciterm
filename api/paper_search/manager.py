@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from api.db.models import PaperStageRun
 from api.paper_search.models import EvidenceChunk, SearchTerm, TermHit
 from api.paper_search.queries import (
+    ABSTRACTS_SQL,
     CORPUS_SIZE_SQL,
     ENTITY_CHUNKS_SQL,
     ENTITY_HITS_SQL,
@@ -97,6 +98,13 @@ class PaperSearchManager:
             return {}
         rows = self._session.execute(text(PAPER_METADATA_SQL), {"paper_ids": list(paper_ids)})
         return {row.id: dict(row._mapping) for row in rows}
+
+    def abstracts(self, paper_ids: Sequence[int]) -> dict[int, str]:
+        """Each paper's abstract text; papers without one are absent."""
+        if not paper_ids:
+            return {}
+        rows = self._session.execute(text(ABSTRACTS_SQL), {"paper_ids": list(paper_ids)})
+        return {row.paper_id: row.abstract for row in rows}
 
     def _chunks(
         self, statement: str, params: dict[str, object]
