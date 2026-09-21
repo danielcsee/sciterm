@@ -11,8 +11,18 @@ from sqlalchemy.orm import Session
 
 from api.corpus.queries import imported_papers_by_ids
 from api.db.models import PaperStageRun
-from api.group_search.queries import CORPUS_MEAN_SQL, GROUP_NAME_SQL, GROUP_PAPERS_SQL
-from api.group_search.schemas import GroupPaper, GroupPaperPage, PaperSubgroup
+from api.group_search.queries import (
+    CORPUS_MEAN_SQL,
+    ENTITY_PAPERS_SQL,
+    GROUP_ENTITY_IDS_SQL,
+    GROUP_NAME_SQL,
+)
+from api.group_search.schemas import (
+    EntityPaperPage,
+    GroupPaper,
+    GroupPaperPage,
+    PaperSubgroup,
+)
 from api.group_search.subgroups import (
     MatchedPaper,
     SortOrder,
@@ -23,7 +33,8 @@ from api.group_search.subgroups import (
 
 
 class GroupSearchManager:
-    """Find a group's papers and sort them into subgroups of similar topics.
+    """Find the papers mentioning a set of entities and sort them into
+    subgroups of similar topics.
 
     Nothing is stored: subgroups are recomputed on every call, so a newly
     ingested paper joins them on the next request.
@@ -35,18 +46,26 @@ class GroupSearchManager:
     def search(
         self, group_id: int, order: SortOrder, page: int, page_size: int
     ) -> Optional[GroupPaperPage]:
-        """One page of subgroups, or None if the group does not exist."""
+        """One page of a saved group's subgroups, or None if the group does not exist."""
         name = self._session.execute(
             text(GROUP_NAME_SQL), {"group_id": group_id}
         ).scalar_one_or_none()
         if name is None:
             return None
-        papers = self._matched_papers(group_id)
+        entity_ids = list(
+            self._session.execute(text(GROUP_ENTITY_IDS_SQL), {"group_id": group_id}).scalars()
+        )
+        result = self.search_entities(entity_ids, order, page, page_size)
+        return GroupPaperPage(**result.model_dump(), group_id=group_id, group_name=name)
+
+    def search_entities(
+        self, entity_ids: Sequence[int], order: SortOrder, page: int, page_size: int
+    ) -> EntityPaperPage:
+        """One page of subgroups for papers mentioning any of `entity_ids`."""
+        papers = self._matched_papers(entity_ids)
         subgroups = order_subgroups(build_subgroups(papers, self._corpus_mean()), order)
         visible, total_pages = page_of(subgroups, page, page_size)
-        return GroupPaperPage(
-            group_id=group_id,
-            group_name=name,
+        return EntityPaperPage(
             order=order,
             page=page,
             page_size=page_size,
@@ -56,10 +75,12 @@ class GroupSearchManager:
             subgroups=self._with_cards(visible),
         )
 
-    def _matched_papers(self, group_id: int) -> list[MatchedPaper]:
+    def _matched_papers(self, entity_ids: Sequence[int]) -> list[MatchedPaper]:
+        if not entity_ids:
+            return []
         rows = self._session.execute(
-            text(GROUP_PAPERS_SQL),
-            {"group_id": group_id, "final_stage": PaperStageRun.FINAL_STAGE},
+            text(ENTITY_PAPERS_SQL),
+            {"entity_ids": list(entity_ids), "final_stage": PaperStageRun.FINAL_STAGE},
         )
         return [
             MatchedPaper(

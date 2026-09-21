@@ -43,8 +43,14 @@ export default function GroupsView({ onClose, onOpenPaper, onOpenPaperInBackgrou
   if (searching) {
     return (
       <GroupPaperResults
+        // A saved group is a fresh page: its own entities, Save greyed again.
+        key={searching.group_id}
         group={searching}
         onClose={() => setSearching(null)}
+        onGroupCreated={(group) => {
+          setGroups((prev) => [group, ...prev])
+          setSearching(group)
+        }}
         onOpenPaper={onOpenPaper}
         onOpenPaperInBackground={onOpenPaperInBackground}
       />

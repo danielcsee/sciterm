@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
-import EntityChip from '../components/EntityChip'
-import type { EntityGroup, SortOrder } from './api'
+import type { EntityGroup, GroupEntity, SortOrder } from './api'
+import GroupEntityEditor from './GroupEntityEditor'
 import PaperSubgroupList from './PaperSubgroupList'
+import SaveGroupModal from './SaveGroupModal'
 import { useGroupPaperPages, type GroupPaperPages } from './useGroupPaperPages'
 
 /** Distance from the bottom at which the next page starts loading, as in `CorpusView`. */
@@ -10,6 +11,8 @@ const SCROLL_MARGIN = '320px'
 interface Props {
   group: EntityGroup
   onClose: () => void
+  /** A new group saved from this page's edited entity list. */
+  onGroupCreated: (group: EntityGroup) => void
   onOpenPaper: (paperId: number, title: string | null) => void
   onOpenPaperInBackground: (paperId: number, title: string | null) => void
 }
@@ -18,33 +21,48 @@ interface Props {
  * Every paper mentioning one of a group's entities, framed into subgroups of
  * similar topics. Replaces the groups page until closed. Subgroups arrive a
  * page at a time as the reader scrolls; the sort toggle refetches from page 1.
+ *
+ * The entities can be edited here without touching the saved group: each add
+ * or remove reruns the search, and Save New Group (enabled once the list
+ * differs from the group's) saves the edited list under a new name.
  */
 export default function GroupPaperResults({
   group,
   onClose,
+  onGroupCreated,
   onOpenPaper,
   onOpenPaperInBackground,
 }: Props) {
   const [order, setOrder] = useState<SortOrder>('desc')
-  const pages = useGroupPaperPages(group.group_id, order)
+  const [entities, setEntities] = useState<GroupEntity[]>(group.entities)
+  const [saving, setSaving] = useState(false)
+  const entityIds = entities.map((entity) => entity.entity_id)
+  const pages = useGroupPaperPages(entityIds, order)
+  const canSave = entities.length > 0 && !sameEntities(entities, group.entities)
   const scrollRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   useLoadOnScroll(scrollRef, sentinelRef, pages.loadNext, pages.page)
 
-  // A new order is a new list: start it from the top.
+  // A new order or entity list is a new list: start it from the top.
+  const idsKey = entityIds.join(',')
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 })
-  }, [order])
+  }, [order, idsKey])
 
   return (
     <section className="corpus" aria-label={`Papers in ${group.name}`}>
       <header className="corpus-header">
         <div className="group-results-heading">
           <h1 className="corpus-title">{group.name}</h1>
-          <div className="group-results-meta">
-            <ResultsSummary pages={pages} />
-            <GroupEntities group={group} />
-          </div>
+          <GroupEntityEditor
+            groupName={group.name}
+            summary={<ResultsSummary pages={pages} />}
+            entities={entities}
+            onRemove={(entityId) =>
+              setEntities((prev) => prev.filter((entity) => entity.entity_id !== entityId))
+            }
+            onAdd={(entity) => setEntities((prev) => [...prev, entity])}
+          />
           <SortToggle order={order} onChange={setOrder} />
         </div>
         <button className="corpus-close" type="button" onClick={onClose} aria-label="Close">
@@ -52,17 +70,39 @@ export default function GroupPaperResults({
         </button>
       </header>
 
-      <div className="corpus-scroll" ref={scrollRef}>
-        <PaperSubgroupList
-          subgroups={pages.subgroups}
-          entityCount={group.entities.length}
-          onOpenPaper={onOpenPaper}
-          onOpenPaperInBackground={onOpenPaperInBackground}
-        />
-        {/* Below the list, with real height — a zero-area target is unreliable. */}
-        <div className="results-sentinel" ref={sentinelRef} aria-hidden="true" />
-        <ResultsStatus pages={pages} />
+      <div className="group-results-body">
+        <div className="group-results-gutter">
+          <button
+            type="button"
+            className="group-button group-button-primary"
+            onClick={() => setSaving(true)}
+            disabled={!canSave}
+            title={canSave ? undefined : 'Add or remove an entity to save a new group'}
+          >
+            Save New Group
+          </button>
+        </div>
+
+        <div className="corpus-scroll" ref={scrollRef}>
+          <PaperSubgroupList
+            subgroups={pages.subgroups}
+            entityCount={entities.length}
+            onOpenPaper={onOpenPaper}
+            onOpenPaperInBackground={onOpenPaperInBackground}
+          />
+          {/* Below the list, with real height — a zero-area target is unreliable. */}
+          <div className="results-sentinel" ref={sentinelRef} aria-hidden="true" />
+          <ResultsStatus pages={pages} empty={entities.length === 0} />
+        </div>
       </div>
+
+      {saving && (
+        <SaveGroupModal
+          entities={entities}
+          onSaved={onGroupCreated}
+          onClose={() => setSaving(false)}
+        />
+      )}
     </section>
   )
 }
@@ -104,19 +144,6 @@ function ResultsSummary({ pages }: { pages: GroupPaperPages }) {
   )
 }
 
-/** The entities the group searches for, as inert chips. */
-function GroupEntities({ group }: { group: EntityGroup }) {
-  return (
-    <ul className="group-results-entities" aria-label={`Entities in ${group.name}`}>
-      {group.entities.map((entity) => (
-        <li key={entity.entity_id}>
-          <EntityChip entity={entity} />
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 /** Flips subgroup size order; the label names the order now shown. */
 function SortToggle({
   order,
@@ -139,7 +166,8 @@ function SortToggle({
   )
 }
 
-function ResultsStatus({ pages }: { pages: GroupPaperPages }) {
+function ResultsStatus({ pages, empty }: { pages: GroupPaperPages; empty: boolean }) {
+  if (empty) return <p className="results-message">Add an entity to search.</p>
   if (pages.error) return <p className="results-message results-error">{pages.error}</p>
   if (pages.loading) {
     return (
@@ -153,4 +181,11 @@ function ResultsStatus({ pages }: { pages: GroupPaperPages }) {
     return <p className="results-message">No imported paper mentions these entities yet.</p>
   }
   return null
+}
+
+/** The same entities, in any order: order changes chips, not results. */
+function sameEntities(a: GroupEntity[], b: GroupEntity[]): boolean {
+  if (a.length !== b.length) return false
+  const ids = new Set(b.map((entity) => entity.entity_id))
+  return a.every((entity) => ids.has(entity.entity_id))
 }

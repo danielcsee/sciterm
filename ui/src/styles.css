@@ -1745,13 +1745,14 @@ body {
 /* Lets the entity chips wrap rather than push the close button off. */
 .group-results-heading { flex: 1; min-width: 0; }
 
-/* The count, then the group's entities, wrapping onto further lines. */
+/* The count and the chips on one wrapping row, "+ Add Entities" beneath. */
+.group-results-editor { display: grid; gap: 8px; margin-top: 5px; }
+
 .group-results-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 10px;
-  margin-top: 5px;
 }
 
 .group-results-meta .corpus-count { margin: 0; }
@@ -1766,6 +1767,71 @@ body {
 }
 
 .group-results-entities li { display: flex; min-width: 0; }
+
+/* A just-added chip starts orange and fades to its normal colours. */
+.group-results-chip-added .entity-chip { animation: entity-chip-added 1.8s ease-out; }
+
+@keyframes entity-chip-added {
+  0%,
+  30% {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+  }
+}
+
+.group-results-add {
+  justify-self: start;
+  padding: 4px 11px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.group-results-add:hover { border-color: var(--accent); color: var(--accent); }
+.group-results-add:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.group-results-add-row { display: flex; gap: 8px; align-items: stretch; max-width: 520px; }
+
+/* Holds the results and, when there is room, Save New Group in the gutter to
+   their right. Too narrow for that, the button sits right-aligned above them. */
+.group-results-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+}
+
+.group-results-gutter {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  max-width: calc(768px + 48px);
+  margin: 0 auto 12px;
+  padding: 0 24px;
+}
+
+.group-results-gutter .group-button { padding-block: 8px; }
+
+@container (min-width: 1180px) {
+  .group-results-gutter {
+    position: absolute;
+    top: 0;
+    /* Just past the right edge of the centred 768px results column. */
+    left: calc(50% + 384px + 24px);
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+}
 
 .sort-toggle {
   margin-top: 10px;

@@ -25,9 +25,9 @@ class PaperSubgroup(BaseModel):
     papers: list[GroupPaper] = Field(default_factory=list)
 
 
-class GroupPaperPage(BaseModel):
-    group_id: int
-    group_name: str
+class EntityPaperPage(BaseModel):
+    """One page of subgroups for papers mentioning any of a set of entities."""
+
     order: SortOrder
     page: int
     page_size: int
@@ -35,3 +35,10 @@ class GroupPaperPage(BaseModel):
     total_papers: int
     total_pages: int
     subgroups: list[PaperSubgroup] = Field(default_factory=list)
+
+
+class GroupPaperPage(EntityPaperPage):
+    """An `EntityPaperPage` for a saved group's entities."""
+
+    group_id: int
+    group_name: str

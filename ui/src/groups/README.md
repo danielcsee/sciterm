@@ -1,6 +1,6 @@
 # ui/src/groups
 
-The Smart Groups page (`/my-groups`): shared, named sets of corpus entities.
+The Smart Groups page (`/my-groups`): shared, named entity sets.
 
 ## Files
 
@@ -9,9 +9,10 @@ groups follow as `GroupTile`s, newest first. A tile click or Search opens
 `GroupPaperResults`; Edit opens `EditGroupModal`.
 
 **`GroupPaperResults.tsx`** — the group's papers, paged on scroll by
-`useGroupPaperPages.ts`. The count is followed by the group's
-entities as `EntityChip`s. The toggle reverses subgroup size order and
-refetches; ✕ returns. `PaperSubgroupList.tsx` frames subgroups of 2+.
+`useGroupPaperPages.ts`, which searches by entity list. `GroupEntityEditor.tsx`
+edits that list (unsaved) and each edit reruns the search; Save New Group, in
+the right gutter, saves it via `SaveGroupModal`. The toggle reverses subgroup
+order; ✕ returns. `PaperSubgroupList.tsx` frames subgroups.
 
 **`GroupBuilder.tsx`** — type-ahead with Save Group beside it, chosen entities
 as removable `EntityChip`s beneath. Save is disabled while empty and opens
@@ -28,10 +29,10 @@ outgoing-arrow icon) sits top right, Edit bottom right. Chips that would be cut 
 over `/entities/suggest`: 250 ms debounce, three characters minimum, and each
 keystroke aborts the request in flight.
 
-**`useModalDialog.ts`** — native `<dialog>` handling shared by both modals,
-as in `AccessCodeModal`, whose `code-*` classes they reuse for a matching look.
+**`useModalDialog.ts`** — native `<dialog>` handling for the modals, reusing
+`AccessCodeModal`'s `code-*` classes.
 
-**`api.ts`** — the `/groups`, `/groups/{id}/papers`, and `/entities/suggest`
+**`api.ts`** — the `/groups`, `/entities/papers`, and `/entities/suggest`
 client, mirroring `api/groups/schemas.py` and `api/group_search/schemas.py`.
 
 Duplicate names (compared ignoring case) come back as a 409 and show under
