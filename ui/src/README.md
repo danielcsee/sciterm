@@ -13,6 +13,8 @@ and imports `styles.css`.
 Closing a paper tab pops that stack, skipping entries whose tab has since
 closed: that is how "go back to where I was" works. `handleSend` calls
 `/corpus/rag_search`; the backend runs no LLM, so answers are ranked evidence.
+The sciterm logo is a link to `/`: a plain click returns to the chat in-app,
+keeping the conversation; a modified click opens a new tab.
 
 **`navigation.ts`** — `View`, the tab model, title truncation, the view↔URL
 mapping, and `loadTabs`/`saveTabs`. The corpus and groups UI routes are
