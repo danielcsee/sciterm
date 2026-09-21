@@ -359,6 +359,9 @@ body {
 
 .debug-caret-open { transform: rotate(90deg); }
 
+/* ExpandableText's toggle: the Debug toggle, on its own line under the text. */
+.expandable-toggle { display: flex; margin-top: 4px; font-size: 10.5px; }
+
 /* Nested disclosures sit indented under their parent toggle. */
 .debug-body > .debug-disclosure { margin: 10px 0 0 15px; }
 

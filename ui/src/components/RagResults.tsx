@@ -1,4 +1,5 @@
 import type { SearchedPaper } from '../api'
+import ExpandableText from './ExpandableText'
 import PaperCard from './PaperCard'
 
 interface Props {
@@ -21,8 +22,8 @@ function paperSummary(paper: SearchedPaper): string {
  * The papers behind an answer.
  *
  * There is no generated prose yet, so the "answer" is the selected papers
- * themselves. Each card says why it was chosen and previews its abstract,
- * already cut to length by the API.
+ * themselves. Each card previews the abstract, then the passage that got the
+ * paper picked. Both arrive in full and are folded to a preview here.
  */
 export default function RagResults({ papers, papersConsidered, onOpenPaper }: Props) {
   if (papers.length === 0) {
@@ -58,10 +59,20 @@ export default function RagResults({ papers, papersConsidered, onOpenPaper }: Pr
                 extra={paperSummary(paper)}
               />
             </button>
-            {paper.abstract_preview && (
+            {paper.abstract && (
               <blockquote className="rag-quote">
                 <span className="rag-quote-section">ABSTRACT</span>
-                {paper.abstract_preview}
+                <ExpandableText text={paper.abstract} />
+              </blockquote>
+            )}
+            {paper.chunks.length > 0 && (
+              <blockquote className="rag-quote">
+                <span className="rag-quote-section">
+                  {['WHY IT WAS PICKED', paper.chunks[0].section_type]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+                <ExpandableText text={paper.chunks[0].text} />
               </blockquote>
             )}
           </li>

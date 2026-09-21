@@ -32,7 +32,6 @@ nouns ("papers", "studies") are skipped. Phrases matching more than
 | `search.py` | `search_papers`: picks the path and assembles the result |
 | `terms.py` | Entities or noun phrases -> `SearchTerm`s |
 | `ranking.py` | Pure IDF, scoring, and slot selection |
-| `preview.py` | Abstract, cut to 300 chars |
 | `manager.py` | `PaperSearchManager`: runs the SQL |
 | `queries.py` | SQL |
 | `models.py` | Internal and response types |
