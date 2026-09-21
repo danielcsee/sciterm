@@ -118,5 +118,4 @@ done
 
 echo
 log "clean. Rebuild with: ./scripts/dev.sh"
-log "first run is slow: it recreates .venv, reinstalls npm packages, re-pulls"
-log "images, and Neo4j downloads the GDS plugin again."
+log "first run is slow: it recreates .venv, reinstalls npm packages, and re-pulls images."

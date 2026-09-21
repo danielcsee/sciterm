@@ -5,7 +5,7 @@ description: Use whenever writing, modifying, or refactoring code in this projec
 
 <!-- Generated from .claude/skills/developer/SKILL.md by aiutils claude-to-codex. Do not edit; edit the source and re-run. -->
 
-Identify the language you're using and the area you're working on (backend, frontend, or both), and use the skills which best correspond to that. When writing backend code (Python/Celery, PostgreSQL, or Neo4j), use the `backend` skill. When writing frontend code (React/Typescript), use the `frontend` skill.
+Identify the language you're using and the area you're working on (backend, frontend, or both), and use the skills which best correspond to that. When writing backend code (Python/Celery or PostgreSQL), use the `backend` skill. When writing frontend code (React/Typescript), use the `frontend` skill.
 
 Before doing any work, use git to check out a new feature branch from the dev branch. Do all your work on that branch, then merge your feature branch back into dev. Always merge your feature branches into dev.
 

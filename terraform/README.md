@@ -1,8 +1,7 @@
 # terraform
 
-The AWS deployment: VPC, RDS, ElastiCache, a Neo4j host, two Fargate services,
-an ALB with TLS, and a migration task. Roughly $135/month idle — see the
-deployment plan for where that goes and how little it moves with usage.
+The AWS deployment: VPC, RDS, ElastiCache, two Fargate services, an ALB with
+TLS, and a migration task.
 
 State lives in S3 with **native S3 locking** (`use_lockfile`), not a DynamoDB
 table. The application stack requires Terraform `>= 1.11` so it can generate
@@ -17,7 +16,7 @@ the value in the plan or state. The bootstrap stack still supports 1.10+.
 | `versions.tf` | Provider and Terraform versions, and the S3 backend. |
 | `main.tf` | Provider, shared locals, the environment both tasks get. |
 | `network.tf` | VPC, subnets, NAT, and every security group. |
-| `rds.tf` `elasticache.tf` `neo4j.tf` | The three datastores. |
+| `rds.tf` `elasticache.tf` | The two datastores. |
 | `ecs.tf` | Cluster, API and worker services, and the migration task. |
 | `alb.tf` | Cloudflare DNS, ACM certificate, load balancer, listeners. |
 | `iam.tf` `secrets.tf` `waf.tf` `ecr.tf` | Supporting resources. |
@@ -72,11 +71,6 @@ egress down for everything. A one-line change if that ever matters.
 writes, but four interface endpoints cost more per month than the traffic they
 would save at this scale. Revisit if task restarts become frequent.
 
-**The API is not given a route to Neo4j.** Only the worker's security group can
-reach it, because only `api/ingestion/tasks.py` and `backfill_graph.py` import
-`api.graph`. Neo4j is still required — the graph stage is what makes an import
-count as imported — but nothing serving a request touches it.
-
 **The worker is not given `JWT_SECRET`.** It parses untrusted PubTator
 documents and has no business minting admin tokens. `api/auth/config.py` is a
 separate settings class so that its absence cannot stop the worker booting.
@@ -108,6 +102,13 @@ to the captured revisions and counts; ECS deployment circuit breakers provide
 a second rollback layer. Previous task definitions remain active so that exact
 rollback target can still launch replacement tasks. Schema migrations must
 remain compatible with the old application while that old revision stays live.
+
+**The graph-removal migration is a one-time exception to that compatibility
+rule.** Before the first deployment containing
+`f2a714c98d31_remove_graph_ingest_stage`, stop imports, drain the Celery queue,
+and scale the old API and worker services to zero. The migration removes the
+legacy `graph` stage vocabulary, and the same Terraform apply destroys the
+derived graph host and secret, so an old worker cannot safely remain active.
 
 ## Tearing down
 

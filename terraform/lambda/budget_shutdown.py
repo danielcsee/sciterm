@@ -17,13 +17,11 @@ log = logging.getLogger()
 log.setLevel(logging.INFO)
 
 ecs = boto3.client("ecs")
-ec2 = boto3.client("ec2")
 rds = boto3.client("rds")
 ssm = boto3.client("ssm")
 
 CLUSTER = os.environ["ECS_CLUSTER"]
 ECS_SERVICES = tuple(filter(None, os.environ["ECS_SERVICES"].split(",")))
-EC2_INSTANCE_IDS = tuple(filter(None, os.environ["EC2_INSTANCE_IDS"].split(",")))
 RDS_INSTANCE_IDS = tuple(filter(None, os.environ["RDS_INSTANCE_IDS"].split(",")))
 LATCH_PARAMETER = os.environ["LATCH_PARAMETER"]
 
@@ -49,13 +47,6 @@ def _shutdown() -> None:
             log.warning("scaled ECS service %s to zero", service)
         except Exception as exc:  # retry the SNS delivery if any target fails
             errors.append(f"ECS {service}: {exc}")
-
-    if EC2_INSTANCE_IDS:
-        try:
-            ec2.stop_instances(InstanceIds=list(EC2_INSTANCE_IDS))
-            log.warning("requested stop for EC2 instances %s", EC2_INSTANCE_IDS)
-        except Exception as exc:
-            errors.append(f"EC2: {exc}")
 
     for identifier in RDS_INSTANCE_IDS:
         try:

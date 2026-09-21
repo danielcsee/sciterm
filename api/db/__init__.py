@@ -3,7 +3,7 @@
 The schema serves two jobs at once:
 
 1. semantic / RAG retrieval  -> `paper_chunks.embedding`
-2. a source for building the Neo4j graph
+2. structured entities, relations, and references for analysis
    -> `entities`, `paper_entity_mentions` (MENTIONS),
       `paper_relations` (CONTRADICTS seeds), `paper_references` (CITES)
 

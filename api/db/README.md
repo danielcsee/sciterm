@@ -3,12 +3,9 @@
 The Postgres layer: schema, session plumbing, and migrations. Everything here
 is populated from one PubTator response per paper.
 
-The schema serves two jobs at once:
-
-1. **Semantic / RAG retrieval** — `paper_chunks.embedding` (pgvector)
-2. **A source for building the Neo4j graph** — `entities` and
-   `paper_entity_mentions` (`MENTIONS`), `paper_relations` (`CONTRADICTS`
-   seeds), `paper_references` (`CITES`)
+The schema supports semantic/RAG retrieval through
+`paper_chunks.embedding` (pgvector), while retaining the source paper's
+entities, mentions, relations, and references for analysis.
 
 ## Files
 
@@ -23,7 +20,7 @@ psycopg2, which is not installed.
 
 The access-control tables — `users`, `auth_sessions`, `free_access_codes` —
 live in [`api/auth/models.py`](../auth/models.py) instead, because they are
-that feature's schema and share nothing with the paper graph. They use this
+that feature's schema and share nothing with the paper corpus. They use this
 `Base` and this migration chain, so `env.py` imports them for their side effect
 on `Base.metadata`; forget that import and autogenerate proposes dropping
 them.

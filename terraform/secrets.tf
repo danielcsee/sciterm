@@ -1,4 +1,4 @@
-# Three secrets, filled two different ways on purpose.
+# Two secrets, filled two different ways on purpose.
 #
 # The signing key is generated ephemerally and sent to Secrets Manager through
 # a write-only argument. Terraform uses it during apply but never stores it in
@@ -34,11 +34,6 @@ resource "random_password" "db" {
   special = false
 }
 
-resource "random_password" "neo4j" {
-  length  = 40
-  special = false
-}
-
 # Stored as the whole DSN rather than the password alone: the app takes one
 # `DATABASE_URL` string, so composing it here keeps the task definition from
 # having to assemble a secret out of parts.
@@ -50,16 +45,4 @@ resource "aws_secretsmanager_secret" "database_url" {
 resource "aws_secretsmanager_secret_version" "database_url" {
   secret_id     = aws_secretsmanager_secret.database_url.id
   secret_string = "postgresql://${aws_db_instance.main.username}:${random_password.db.result}@${aws_db_instance.main.endpoint}/${aws_db_instance.main.db_name}"
-}
-
-# The container reads "user/password", the same shape the app's neo4j_auth
-# setting expects, so the server and its clients cannot drift on credentials.
-resource "aws_secretsmanager_secret" "neo4j_auth" {
-  name                    = "${local.name}/neo4j-auth"
-  recovery_window_in_days = var.destroy_friendly ? 0 : 7
-}
-
-resource "aws_secretsmanager_secret_version" "neo4j_auth" {
-  secret_id     = aws_secretsmanager_secret.neo4j_auth.id
-  secret_string = "neo4j/${random_password.neo4j.result}"
 }

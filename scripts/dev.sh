@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the whole local stack: Postgres + Neo4j in Docker, the FastAPI server
+# Launch the whole local stack: Postgres + Redis in Docker, the FastAPI server
 # and the React dev server on the host.
 #
 #   ./scripts/dev.sh           hot-reloading dev servers (UI on :5173)
@@ -55,9 +55,9 @@ export SCITERM_ENV=local
 # ---------- datastores ----------
 if [ "$START_DB" = 1 ]; then
   command -v docker >/dev/null || die "docker not found (or run with --no-db)"
-  log "starting postgres + neo4j + redis"
-  docker compose up -d postgres neo4j redis-celery-broker redis-cache
-  log "waiting for healthchecks (neo4j downloads the GDS plugin on first run)"
+  log "starting postgres + redis"
+  docker compose up -d postgres redis-celery-broker redis-cache
+  log "waiting for healthchecks"
   for _ in $(seq 1 90); do
     unhealthy=$(docker compose ps --format '{{.Service}} {{.Health}}' \
                  | awk '$2 != "healthy" {print $1}' | tr '\n' ' ')
@@ -129,6 +129,5 @@ else
   PIDS+=($!)
 fi
 
-log "neo4j browser → http://localhost:${NEO4J_HTTP_PORT:-7474}"
 log "ctrl-c to stop"
 wait

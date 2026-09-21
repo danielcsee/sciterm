@@ -76,7 +76,6 @@ resource "aws_ecs_task_definition" "api" {
         name  = "JWT_SECRET_VERSION"
         value = tostring(var.jwt_secret_version)
       },
-      # The API never opens a Neo4j driver, so it is not given a route to one.
     ])
 
     secrets = [
@@ -172,13 +171,10 @@ resource "aws_ecs_task_definition" "worker" {
       "--loglevel=info", "--concurrency=1",
     ]
 
-    environment = concat(local.common_env, [
-      { name = "NEO4J_URI", value = "bolt://${aws_instance.neo4j.private_ip}:7687" },
-    ])
+    environment = local.common_env
 
     secrets = [
       local.db_secret,
-      { name = "NEO4J_AUTH", valueFrom = aws_secretsmanager_secret.neo4j_auth.arn },
       # No JWT_SECRET. The worker parses untrusted PubTator documents and has
       # no business being able to mint admin tokens; api/auth/config.py is a
       # separate settings class precisely so its absence cannot stop the worker

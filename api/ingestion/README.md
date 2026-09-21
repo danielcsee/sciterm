@@ -41,14 +41,9 @@ checked first, so a late failure is an error, not a success.
 
 ## Stages
 
-`ingest_paper | embed_paper | graph_paper`, chained, each returning the
-`papers.id` so the next one has it. `graph_paper` projects the paper into Neo4j
-through `api.graph.load_paper`, and completing it is what "imported" means —
-`FINAL_STAGE` is `"graph"`, so a paper is absent from `/corpus` and from RAG
-results until the graph has it.
-
-`python -m api.ingestion.backfill_graph` catches up papers imported before the
-stage existed: one bulk projection, then their ledger rows.
+`ingest_paper | embed_paper`, chained with the `papers.id` passed between them.
+Completing `embed_paper` is what "imported" means, so a paper appears in
+`/corpus` and RAG results only after its vectors are stored.
 
 ## Concurrency
 

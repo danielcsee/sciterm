@@ -443,9 +443,9 @@ def upsert_entities(
 ) -> dict[str, int]:
     """Ensure an `entities` row per grounded concept; return identifier -> id.
 
-    Ungrounded concepts never reach this table: they fragment the graph, which
-    is the whole reason for grounding entities. Relations reference concepts
-    too, and may name one no annotation did.
+    Ungrounded concepts never reach this table because they cannot be joined
+    reliably across papers. Relations reference concepts too, and may name one
+    no annotation did.
 
     This is the single gate in front of `entities`, so every identifier is
     validated here rather than trusted from the parser. `normalise_identifier`

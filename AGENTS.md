@@ -8,7 +8,6 @@ Frontend: React/Typescript
 API server: FastAPI (Python)
 Ingest pipeline: Celery
 Datastore (for papers): PostgreSQL
-Knowledge graph: Neo4j
 
 # Communication Style
 

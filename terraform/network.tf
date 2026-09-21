@@ -78,8 +78,8 @@ resource "aws_route_table_association" "private" {
 # --- security groups ------------------------------------------------------
 #
 # Rules reference other groups rather than CIDRs wherever possible, so the
-# policy reads as "the worker may reach Neo4j" rather than as a subnet range
-# that has to be re-read against the subnet map to mean anything.
+# policy names the caller rather than using a subnet range that has to be
+# re-read against the subnet map to mean anything.
 
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb"
@@ -180,29 +180,4 @@ resource "aws_security_group" "cache" {
   }
 
   tags = { Name = "${local.name}-cache" }
-}
-
-resource "aws_security_group" "neo4j" {
-  name        = "${local.name}-neo4j"
-  description = "Graph database. Worker only -- no serving route reads it."
-  vpc_id      = aws_vpc.main.id
-
-  # Bolt from the worker alone. The API never opens a driver: only
-  # api/ingestion/tasks.py and backfill_graph.py import api.graph.
-  ingress {
-    description     = "Bolt from the worker"
-    from_port       = 7687
-    to_port         = 7687
-    protocol        = "tcp"
-    security_groups = [aws_security_group.worker.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = { Name = "${local.name}-neo4j" }
 }

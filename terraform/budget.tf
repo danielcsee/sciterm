@@ -122,11 +122,6 @@ resource "aws_iam_role_policy" "budget_shutdown" {
       },
       {
         Effect   = "Allow"
-        Action   = ["ec2:StopInstances"]
-        Resource = [aws_instance.neo4j.arn]
-      },
-      {
-        Effect   = "Allow"
         Action   = ["rds:DescribeDBInstances"]
         Resource = ["*"]
       },
@@ -163,7 +158,6 @@ resource "aws_lambda_function" "budget_shutdown" {
     variables = {
       ECS_CLUSTER      = aws_ecs_cluster.main.name
       ECS_SERVICES     = join(",", [aws_ecs_service.api.name, aws_ecs_service.worker.name])
-      EC2_INSTANCE_IDS = aws_instance.neo4j.id
       RDS_INSTANCE_IDS = aws_db_instance.main.identifier
       LATCH_PARAMETER  = aws_ssm_parameter.budget_shutdown_latch.name
     }

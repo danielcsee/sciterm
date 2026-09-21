@@ -9,9 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 ImportStatus = Literal["queued", "in_progress", "already_imported", "rejected"]
 
 #: One paper's overall progress, collapsed from its per-stage ledger rows.
-#: Derived here rather than in the UI: "which stage is last" is a backend fact,
-#: and adding the Neo4j `graph` stage must not silently change what a client
-#: considers finished.
+#: Derived here rather than in the UI: "which stage is last" is a backend fact.
 PaperState = Literal["queued", "started", "success", "error"]
 
 #: Cap on one request. Every queued paper becomes a PubTator fetch, and the

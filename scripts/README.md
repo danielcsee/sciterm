@@ -4,7 +4,7 @@ Developer tooling.
 
 ## `dev.sh`
 
-Launches the whole local stack — Postgres and Neo4j in Docker, the FastAPI
+Launches the whole local stack — Postgres and Redis in Docker, the FastAPI
 server and the React dev server on the host.
 
 ```bash
@@ -23,8 +23,8 @@ candidate. Both look like application bugs.
 It is idempotent and safe to re-run. In order it will:
 
 1. create `.env` from `.env.example` if missing, then source it
-2. `docker compose up -d postgres neo4j redis` and wait on their healthchecks — the
-   first run is slow, because Neo4j downloads the Graph Data Science plugin
+2. `docker compose up -d postgres redis-celery-broker redis-cache` and wait on
+   their healthchecks
 3. create `.venv` if missing and install `api/requirements.txt`
 4. apply Alembic migrations (`alembic upgrade head`)
 5. `npm install` in `ui/` if `node_modules` is missing
@@ -35,20 +35,6 @@ quietly put the access-code gate in front of local development.
 
 Ctrl-C stops the app processes. **The datastores keep running** — stop them
 with `docker compose down`.
-
-## `build-graph.sh`
-
-Projects the Postgres corpus into the Neo4j knowledge graph — see
-[`api/graph`](../api/graph).
-
-```bash
-./scripts/build-graph.sh                 # apply schema, then load
-./scripts/build-graph.sh --schema-only   # constraints and indexes only
-./scripts/build-graph.sh --reset         # wipe nodes and edges, then reload
-```
-
-Idempotent: every node is merged on its key, so re-run it after importing more
-papers. `--reset` clears data but keeps the constraints.
 
 ## `admin.sh`
 
@@ -83,7 +69,7 @@ containers.
 
 ```bash
 ./scripts/stop.sh              # app processes and datastores
-./scripts/stop.sh --apps-only  # leave Postgres/Neo4j/Redis running
+./scripts/stop.sh --apps-only  # leave Postgres/Redis running
 ./scripts/stop.sh --dry-run    # list what would be stopped
 ```
 
@@ -180,8 +166,8 @@ codex debug prompt-input | grep -i skill
 
 ## Ports
 
-Read from `.env`, with defaults: API `8000`, UI `5173`, Postgres `5432`, Neo4j
-`7474` (browser) and `7687` (bolt).
+Read from `.env`, with defaults: API `8000`, UI `5173`, Postgres `5432`, Redis
+broker `6379`, and Redis document cache `6380`.
 
 ## Dependencies
 

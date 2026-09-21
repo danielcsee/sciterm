@@ -2,7 +2,7 @@
 # Stop everything this project starts: host servers and its Docker containers.
 #
 #   ./scripts/stop.sh              stop app processes and the datastores
-#   ./scripts/stop.sh --apps-only  leave Postgres/Neo4j/Redis running
+#   ./scripts/stop.sh --apps-only  leave Postgres/Redis running
 #   ./scripts/stop.sh --quiet      say less
 #   ./scripts/stop.sh --dry-run    list what would be stopped, kill nothing
 #   ./scripts/stop.sh --list       print the PIDs and exit; stop nothing

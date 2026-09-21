@@ -3,8 +3,8 @@
 Three tables, and the interesting part is the constraints between them.
 
 `users` holds exactly two rows in practice — `admin` and `anonfree` — because
-this app has no user-owned data. Papers, chunks, entities and the graph are one
-global pool; a user is a key to the expensive doors, not an owner of anything.
+this app has no user-owned data. Papers, chunks, and entities are one global
+pool; a user is a key to the expensive doors, not an owner of anything.
 
 `auth_sessions` is one row per live refresh-token family. Several rows per user
 is the point: two browsers means two sessions.

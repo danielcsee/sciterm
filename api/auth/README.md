@@ -3,9 +3,9 @@
 Access control: two accounts, their sessions, and the time-limited free access
 codes that let a visitor open one.
 
-There is no user-owned data anywhere in SciTerm — papers, chunks, entities and
-the graph are a single global pool. A user here is a key to the expensive
-doors, not an owner of anything.
+There is no user-owned data anywhere in SciTerm — papers, chunks, and entities
+are a single global pool. A user here is a key to the expensive doors, not an
+owner of anything.
 
 ## The invariant
 
