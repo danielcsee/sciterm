@@ -16,6 +16,7 @@ from api.redis_conn import close_client as close_redis
 from api.corpus import protected_router as corpus_protected_router
 from api.corpus import router as corpus_router
 from api.entity_matching import get_cutoffs
+from api.group_search import router as group_search_router
 from api.groups import router as groups_router
 from api.ingestion import router as ingestion_router
 from api.ncbi import http as ncbi_http
@@ -84,6 +85,7 @@ app.include_router(ingestion_router)
 app.include_router(corpus_protected_router)
 app.include_router(corpus_router)
 app.include_router(groups_router)
+app.include_router(group_search_router)
 
 dist = settings.sciterm_ui_dist
 dev_ui_url = settings.sciterm_ui_dev_url

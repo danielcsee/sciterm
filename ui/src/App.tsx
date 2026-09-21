@@ -335,7 +335,13 @@ export default function App() {
             onFocusApplied={clearFocus}
           />
         ) : view.kind === 'groups' ? (
-          <GroupsView onClose={() => navigate(CHAT)} />
+          <GroupsView
+            onClose={() => navigate(CHAT)}
+            onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
+            onOpenPaperInBackground={(paperId, title) =>
+              openPaperInBackground(paperId, truncateTitle(title, 200))
+            }
+          />
         ) : view.kind === 'corpus' ? (
           <CorpusView
             onClose={() => navigate(CHAT)}

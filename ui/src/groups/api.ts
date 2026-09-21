@@ -1,8 +1,9 @@
 /**
- * Typed access to `/groups` and `/entities/suggest`, mirroring
- * `api/groups/schemas.py` — changing one means changing the other.
+ * Typed access to `/groups`, `/groups/{id}/papers`, and `/entities/suggest`,
+ * mirroring `api/groups/schemas.py` and `api/group_search/schemas.py` —
+ * changing one means changing the other.
  */
-import { ApiError } from '../api'
+import { ApiError, type CorpusPaper } from '../api'
 import { authFetch } from '../auth'
 
 /** An entity in a group; the same fields `entityLabel` reads. */
@@ -36,6 +37,33 @@ export interface EntitySuggestion {
   name: string | null
   /** The name or mention text the typed input matched. */
   matched_text: string
+}
+
+/** Subgroup size order; `desc` is largest first, the server's default. */
+export type SortOrder = 'asc' | 'desc'
+
+/** A corpus card plus how many of the group's entities the paper mentions. */
+export interface GroupPaper extends CorpusPaper {
+  match_count: number
+}
+
+/** Papers whose paragraphs discuss similar topics, most matches first. */
+export interface PaperSubgroup {
+  size: number
+  papers: GroupPaper[]
+}
+
+/** One page of whole subgroups; `page_size` counts subgroups, not papers. */
+export interface GroupPaperPage {
+  group_id: number
+  group_name: string
+  order: SortOrder
+  page: number
+  page_size: number
+  total_subgroups: number
+  total_papers: number
+  total_pages: number
+  subgroups: PaperSubgroup[]
 }
 
 interface EntitySuggestions {
@@ -92,6 +120,18 @@ export async function updateGroup(
 export async function deleteGroup(groupId: number): Promise<void> {
   const response = await authFetch(`/groups/${groupId}`, { method: 'DELETE' })
   if (!response.ok) throw await apiError(response, 'could not delete the group')
+}
+
+export async function fetchGroupPapers(
+  groupId: number,
+  order: SortOrder,
+  page: number,
+  signal?: AbortSignal,
+): Promise<GroupPaperPage> {
+  const params = new URLSearchParams({ order, page: String(page) })
+  const response = await authFetch(`/groups/${groupId}/papers?${params}`, { signal })
+  if (!response.ok) throw await apiError(response, 'could not search the group')
+  return (await response.json()) as GroupPaperPage
 }
 
 export async function suggestEntities(

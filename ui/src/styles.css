@@ -1555,7 +1555,58 @@ body {
 }
 
 .group-tile:hover,
-.group-tile:focus-visible { border-color: var(--accent); outline: none; }
+.group-tile:focus-within { border-color: var(--accent); outline: none; }
+
+.group-tile-head,
+.group-tile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.group-tile-head .group-tile-name,
+.group-tile-foot .group-tile-count {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-tile-edit {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.group-tile-edit:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Styled as a link: it does what a click on the tile does. */
+.group-tile-search {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.group-tile-search:hover { text-decoration: underline; }
+
+.group-tile-edit:focus-visible,
+.group-tile-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .group-tile-name {
   font-size: 14.5px;
@@ -1681,3 +1732,49 @@ body {
 .group-delete-confirm { border-color: var(--accent); font-weight: 560; }
 
 .group-delete:disabled { opacity: 0.55; cursor: default; }
+
+/* ---------- group paper results ---------- */
+.sort-toggle {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.sort-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.sort-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.subgroup-list,
+.subgroup-papers {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.subgroup-list { max-width: 768px; gap: 14px; }
+
+/* Papers that discuss similar topics share a frame. */
+.subgroup-framed {
+  padding: 10px;
+  border: 1.5px solid var(--accent);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--accent-soft);
+}
+
+.subgroup-label {
+  margin: 0 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}

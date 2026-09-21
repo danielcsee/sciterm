@@ -3,19 +3,27 @@ import { ApiError } from '../api'
 import { fetchGroups, type EntityGroup } from './api'
 import EditGroupModal from './EditGroupModal'
 import GroupBuilder from './GroupBuilder'
+import GroupPaperResults from './GroupPaperResults'
 import GroupTile from './GroupTile'
 
 interface Props {
   onClose: () => void
+  onOpenPaper: (paperId: number, title: string | null) => void
+  onOpenPaperInBackground: (paperId: number, title: string | null) => void
 }
 
-/** The My Groups page: a builder for a new group, then every saved group as a tile. */
-export default function GroupsView({ onClose }: Props) {
+/**
+ * The My Groups page: a builder for a new group, then every saved group as a
+ * tile. Searching a group swaps the page for that group's paper results until
+ * they are closed; the groups stay loaded underneath.
+ */
+export default function GroupsView({ onClose, onOpenPaper, onOpenPaperInBackground }: Props) {
   const [groups, setGroups] = useState<EntityGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
   const [editing, setEditing] = useState<EntityGroup | null>(null)
+  const [searching, setSearching] = useState<EntityGroup | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -31,6 +39,17 @@ export default function GroupsView({ onClose }: Props) {
       })
     return () => controller.abort()
   }, [])
+
+  if (searching) {
+    return (
+      <GroupPaperResults
+        group={searching}
+        onClose={() => setSearching(null)}
+        onOpenPaper={onOpenPaper}
+        onOpenPaperInBackground={onOpenPaperInBackground}
+      />
+    )
+  }
 
   return (
     <section className="groups" aria-label="My Groups">
@@ -66,7 +85,12 @@ export default function GroupsView({ onClose }: Props) {
         <GroupsStatus loading={loading} error={error} empty={groups.length === 0} />
         <div className="group-grid">
           {groups.map((group) => (
-            <GroupTile key={group.group_id} group={group} onOpen={() => setEditing(group)} />
+            <GroupTile
+              key={group.group_id}
+              group={group}
+              onSearch={() => setSearching(group)}
+              onEdit={() => setEditing(group)}
+            />
           ))}
         </div>
       </div>
