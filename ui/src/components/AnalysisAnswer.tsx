@@ -57,6 +57,7 @@ export default function AnalysisAnswer({
   const byNumber = new Map(citations.map((citation) => [citation.number, citation]))
   const parts = splitCitations(answer, new Set(byNumber.keys()))
   const [activeId, setActiveId] = useState<number | null>(null)
+  const active = entities.find((entity) => entity.entity_id === activeId) ?? null
 
   return (
     <>
@@ -64,7 +65,7 @@ export default function AnalysisAnswer({
         {parts.map((part, index) =>
           part.kind === 'text' ? (
             <span key={index}>
-              <EntityPhrases text={part.text} entities={entities} activeId={activeId} />
+              <EntityPhrases text={part.text} entity={active} />
             </span>
           ) : (
             <CitationMarker
@@ -83,15 +84,22 @@ export default function AnalysisAnswer({
 
 interface EntityPhrasesProps {
   text: string
-  entities: AnswerEntity[]
-  /** The hovered pill's entity: only its phrases are underlined. */
-  activeId: number | null
+  /** The hovered pill's entity, or null when no pill is hovered. */
+  entity: AnswerEntity | null
 }
 
-/** One stretch of prose, with the active entity's phrases underlined. */
-function EntityPhrases({ text, entities, activeId }: EntityPhrasesProps) {
-  return markPhrases(text, entities).map((run, index) =>
-    run.entity && run.entity.entity_id === activeId ? (
+/**
+ * One stretch of prose, with the hovered entity's phrases underlined.
+ *
+ * Only that entity's phrases are matched. Two entities often share a phrase
+ * (MeSH has both "Kidney Failure, Chronic" and "Renal Insufficiency, Chronic"
+ * for "chronic kidney disease"), and matching them all together would hand the
+ * shared words to one entity, leaving the other's pill underlining nothing.
+ */
+function EntityPhrases({ text, entity }: EntityPhrasesProps) {
+  if (!entity) return text
+  return markPhrases(text, [entity]).map((run, index) =>
+    run.entity ? (
       <span key={index} className="answer-entity">
         {run.text}
       </span>
