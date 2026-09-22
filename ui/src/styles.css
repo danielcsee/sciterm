@@ -344,8 +344,22 @@ body {
 /* The answer, beneath its citations. */
 .analysis-block { margin-top: 18px; }
 
-/* A phrase naming a recognised entity: underlined in the accent, so it reads
-   as annotated without competing with the citation markers' colour. */
+/* The entities an answer names, as pills after it (AnswerEntityPills.tsx).
+   They share the paper view's pill shape but open nothing: hovering one only
+   underlines its phrases above, so the cursor stays plain. */
+.answer-entity-pills {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.answer-entity-pill { display: inline-block; cursor: default; }
+
+/* A phrase naming the hovered pill's entity: underlined in the accent, so it
+   reads as annotated without competing with the citation markers' colour. */
 .answer-entity {
   text-decoration: underline;
   text-decoration-color: var(--accent);
