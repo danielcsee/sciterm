@@ -2,7 +2,8 @@
 
 Application source. The layout is flat: an entry point, a root component,
 shared types, navigation, import tracking, the API client, plus
-[`auth/`](auth), [`components/`](components) and [`groups/`](groups).
+[`auth/`](auth), [`components/`](components), [`define/`](define) and
+[`groups/`](groups).
 
 ## Files
 
@@ -46,6 +47,10 @@ and retries once through `/auth/refresh` on a 401.
 
 **`groups/`** — the Smart Groups page: saved entity groups, the type-ahead that
 builds them, and their `/groups` API client. See its [README](groups).
+
+**`define/`** — "Define this term": a button beside highlighted chat or
+paper text, and the definition it fetches into the sidebar. See its
+[README](define).
 
 **`auth/`** — the access-code gate: token store, `useAuth()`, and the modal.
 The app loads whole for everyone; this decides which controls work. See its

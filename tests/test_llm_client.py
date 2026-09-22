@@ -13,7 +13,7 @@ from openai.types.responses import (
 )
 
 from api.llm import LlmError
-from api.llm.client import _text_deltas
+from api.llm.client import _nonempty_text, _text_deltas
 
 
 def _delta(text: str) -> ResponseTextDeltaEvent:
@@ -60,3 +60,9 @@ def test_text_deltas_raises_on_a_bad_ending() -> None:
             for piece in _text_deltas([_delta("so far"), case["event"]]):
                 received.append(piece)
         assert received == ["so far"], case
+
+
+def test_nonempty_text_strips_and_rejects_silence() -> None:
+    assert _nonempty_text("  A definition. \n", "completed") == "A definition."
+    with pytest.raises(LlmError, match="incomplete"):
+        _nonempty_text("  ", "incomplete")

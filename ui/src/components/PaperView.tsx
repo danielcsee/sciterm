@@ -298,8 +298,8 @@ export default function PaperView({
         }
       />
       <div className="paper-reader">
-        <div className="paper-scroll" ref={scrollRef}>
-        <article className="paper-doc">
+        <div className="paper-scroll" ref={scrollRef} data-definable>
+        <article className="paper-doc" data-definable-column>
           <header className="paper-doc-header">
             <h1 className="paper-doc-title">{paper.title ?? 'Untitled'}</h1>
             {paper.authors.length > 0 && (

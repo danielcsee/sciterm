@@ -25,9 +25,10 @@ datastores and applies migrations.
 | [`entity_matching/`](entity_matching) | Entity candidates for chat queries and type-ahead |
 | [`groups/`](groups) | Shared, named entity groups (`/groups`) |
 | [`group_search/`](group_search) | A group's papers in subgroups of similar topics (`/groups/{id}/papers`) |
-| [`llm/`](llm) | OpenAI: routes chat queries to a tool, resolves entities |
+| [`llm/`](llm) | OpenAI: routes chat queries to a tool, resolves entities, defines terms |
 | [`paper_search/`](paper_search) | Chooses chat's papers by entity coverage or full-text |
 | [`paper_analysis/`](paper_analysis) | Cited answers for `paper_analysis` from the best paragraphs |
+| [`define_term/`](define_term) | Plain-language definitions of highlighted phrases (`/define`) |
 
 ## Dependencies
 

@@ -8,6 +8,7 @@ import {
   type SearchResult,
 } from '../api'
 import { useAuth } from '../auth'
+import { DefinitionPanel, type Definition } from '../define'
 import PaperCard from './PaperCard'
 
 /** Pixels from the bottom at which the next page starts loading. */
@@ -17,10 +18,18 @@ interface Props {
   /** Queue papers. The container owns import state so both panels share one. */
   onImport: (pmids: ImportPmids[], papers: SearchResult[]) => void
   importing: boolean
+  /** Shown in place of the results until the next search replaces it. */
+  definition: Definition | null
+  onClearDefinition: () => void
 }
 
 /** Search PubTator and queue results for import. */
-export default function SearchPubTator({ onImport, importing }: Props) {
+export default function SearchPubTator({
+  onImport,
+  importing,
+  definition,
+  onClearDefinition,
+}: Props) {
   // Every search is a PubTator call against a shared rate limit, so the search
   // bar is a gate in the same way the chat composer is.
   const { unlocked, requireAuth } = useAuth()
@@ -75,6 +84,7 @@ export default function SearchPubTator({ onImport, importing }: Props) {
   /** The work, past the gate. Resumed whole after a code is accepted, so the
       panel state and the request can never end up half-applied. */
   function startSearch(text: string) {
+    onClearDefinition()
     setQuery(text)
     setResults([])
     setPage(0)
@@ -194,13 +204,17 @@ export default function SearchPubTator({ onImport, importing }: Props) {
         </button>
       </form>
 
-      {totalResults > 0 && (
+      {definition && <DefinitionPanel definition={definition} onClose={onClearDefinition} />}
+
+      {totalResults > 0 && !definition && (
         <p className="search-count">
           {totalResults.toLocaleString()} result{totalResults === 1 ? '' : 's'}
         </p>
       )}
 
-      <div className="results" ref={scrollRef}>
+      {/* Hidden, not unmounted, under a definition: closing it brings back
+          the results, their scroll position and the selection. */}
+      <div className="results" ref={scrollRef} hidden={definition !== null}>
         {error && <p className="results-message results-error">{error}</p>}
         {empty && <p className="results-message">No papers matched that query.</p>}
 

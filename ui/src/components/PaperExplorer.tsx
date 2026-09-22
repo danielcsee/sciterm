@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { ApiError, importPapers, type ImportPmids, type SearchResult } from '../api'
 import { useAuth } from '../auth'
+import type { Definition } from '../define'
 import { useImportStatus } from '../useImportStatus'
 import ImportStatus from './ImportStatus'
 import ImportedReferences from './ImportedReferences'
@@ -18,6 +19,9 @@ interface Props {
   referencesFor: ReferenceTarget | null
   onCloseReferences: () => void
   onOpenPaper: (paperId: number, title: string | null) => void
+  /** The highlighted term's definition, shown under the search box. */
+  definition: Definition | null
+  onClearDefinition: () => void
 }
 
 /**
@@ -31,6 +35,8 @@ export default function PaperExplorer({
   referencesFor,
   onCloseReferences,
   onOpenPaper,
+  definition,
+  onClearDefinition,
 }: Props) {
   // Both panels queue through here, so gating this one function covers the
   // search results and the reference list at once — including the case where a
@@ -82,6 +88,8 @@ export default function PaperExplorer({
         <SearchPubTator
           onImport={(pmids, papers) => void handleImport(pmids, papers)}
           importing={importing}
+          definition={definition}
+          onClearDefinition={onClearDefinition}
         />
       </div>
 

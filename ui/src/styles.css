@@ -1915,3 +1915,46 @@ body {
   font-weight: 600;
   color: var(--accent);
 }
+
+/* ---------- define this term ---------- */
+/* Fixed, not a child of the text: it sits in the gutter beside the scrolling
+   column, placed from the highlight's own rect (define/selection.ts). */
+.define-term-button {
+  position: fixed;
+  z-index: 20;
+  padding: 4px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+}
+
+.define-term-button:hover { background: var(--accent-soft); }
+
+.definition { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; }
+
+.definition-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.definition-phrase {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 620;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.definition-text { margin: 0; font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; }
+.results[hidden] { display: none; }

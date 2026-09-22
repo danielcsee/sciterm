@@ -25,7 +25,8 @@ One file per module under test, named for it:
 | `test_entity_suggest.py` | `api/entity_matching/suggest.py` — type-ahead merge order |
 | `test_entity_cutoffs.py` | `api/entity_matching/cutoffs.py` — loading and validating the TOML |
 | `test_paper_analysis_answer.py` | `api/paper_analysis/answer.py` — when an answer is asked for, and how it ends |
-| `test_llm_client.py` | `api/llm/client.py` — reading answer text out of a response stream |
+| `test_llm_client.py` | `api/llm/client.py` — reading answer text out of a response, streamed or whole |
+| `test_define_term.py` | `api/define_term/models.py`, `api/llm/definition.py` — request rules and model input |
 | `test_llm_answer_entities.py` | `api/llm/answer_entities.py` — joining phrases back to candidates |
 
 `conftest.py` puts the repository root on `sys.path`; the `api` package is run

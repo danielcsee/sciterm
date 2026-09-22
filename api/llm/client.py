@@ -1,4 +1,4 @@
-"""OpenAI transport: a forced tool call, or a streamed answer, each checked.
+"""OpenAI transport: a forced tool call, or free text (whole or streamed), each checked.
 
 Business logic (what to ask, and what the answer means) lives in `intent.py`;
 this module only sends the request and validates the shape of what came back.
@@ -80,6 +80,20 @@ class LlmClient:
             raise LlmError(f"OpenAI request failed: {exc}") from exc
         return _single_tool_call(response)
 
+    def complete_text(self, instructions: str, user_input: str) -> str:
+        """A short free-text answer, returned whole. Raises LlmError when empty."""
+        try:
+            response = self._client.responses.create(
+                model=self._model,
+                instructions=instructions,
+                input=user_input,
+                store=False,
+                **self._reasoning_options(),
+            )
+        except openai.OpenAIError as exc:
+            raise LlmError(f"OpenAI request failed: {exc}") from exc
+        return _nonempty_text(response.output_text, response.status)
+
     def stream_text(self, instructions: str, user_input: str, *, timeout: float) -> Iterator[str]:
         """Free-text answer, yielded as the model writes it. No retry.
 
@@ -116,6 +130,14 @@ def _text_deltas(events: Iterable[ResponseStreamEvent]) -> Iterator[str]:
             raise LlmError(f"OpenAI stream failed: {event.message}")
         elif isinstance(event, (ResponseFailedEvent, ResponseIncompleteEvent)):
             raise LlmError(f"OpenAI response ended as {event.response.status}")
+
+
+def _nonempty_text(text: str, status: Optional[str]) -> str:
+    """The response's text, or LlmError when the model produced none."""
+    text = text.strip()
+    if not text:
+        raise LlmError(f"OpenAI returned no text (status {status})")
+    return text
 
 
 def _single_tool_call(response: ParsedResponse[object]) -> ToolCall:

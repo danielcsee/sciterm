@@ -12,6 +12,7 @@ import CorpusView from './components/CorpusView'
 import PaperTabs from './components/PaperTabs'
 import PaperView from './components/PaperView'
 import PaperExplorer, { type ReferenceTarget } from './components/PaperExplorer'
+import { DefineTermButton, useDefinition } from './define'
 import { GroupsView } from './groups'
 import {
   CHAT,
@@ -67,6 +68,7 @@ export default function App() {
   const focusNonce = useRef(0)
   // Which paper's references the side panel is showing, if any.
   const [referencesFor, setReferencesFor] = useState<ReferenceTarget | null>(null)
+  const definition = useDefinition()
 
   useEffect(() => {
     saveTabs(tabs.filter((tab) => !missing.has(tab.paperId)))
@@ -159,6 +161,15 @@ export default function App() {
   function openPaperInBackground(paperId: number, title: string | null) {
     addTab(paperId, title)
     flashTab(paperId)
+  }
+
+  /**
+   * Define a highlighted phrase in the sidebar. The definition shows under the
+   * search box, so a references panel covering it is closed first.
+   */
+  function defineHighlight(phrase: string, surroundingContext: string | null) {
+    setReferencesFor(null)
+    definition.request(phrase, surroundingContext)
   }
 
   function closePaper(paperId: number) {
@@ -340,8 +351,14 @@ export default function App() {
           referencesFor={referencesFor}
           onCloseReferences={() => setReferencesFor(null)}
           onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
+          definition={definition.definition}
+          onClearDefinition={definition.clear}
         />
       </main>
+      {/* Spends OpenAI tokens, so it is gated like the chat composer. */}
+      <DefineTermButton
+        onDefine={(phrase, context) => requireAuth(() => defineHighlight(phrase, context))}
+      />
     </div>
   )
 }

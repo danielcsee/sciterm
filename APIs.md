@@ -150,7 +150,7 @@ id constraints.
 ## OpenAI
 
 Base: `https://api.openai.com/v1` (the `openai` SDK's default)
-Client: [`api/llm/client.py`](api/llm/client.py) → called from `/corpus/rag_search`
+Client: [`api/llm/client.py`](api/llm/client.py) → called from `/corpus/rag_search` and `/define`
 
 ### `POST /responses` — intent routing
 
@@ -214,3 +214,20 @@ Response: one `function_call` with `entities: [{entity_id, phrases}]`. Invented
 ids and phrases the answer does not contain are dropped. Timeout
 `OPENAI_TIMEOUT_SECONDS` (20s), one retry. Measured at ~8s for 8 candidates,
 after ~4s of matching, with `gpt-5-mini` at `low` effort.
+
+### `POST /responses` — define a highlighted phrase
+
+Called from `/define` when a reader highlights text and clicks "Define this
+term", via `client.responses.create` (not streamed). Plain text out; no tools.
+
+| Param | Value |
+|---|---|
+| `model` | `OPENAI_MODEL` |
+| `instructions` | The definition prompt in `api/llm/definition.py` |
+| `input` | JSON: `{phrase, surrounding_context}` — the paragraph, or `null` for highlights over 12 words |
+| `reasoning.effort` | `OPENAI_REASONING_EFFORT`; omitted when unset |
+| `store` | `false` |
+
+Response: `output_text`; an empty one is an error. Timeout
+`OPENAI_TIMEOUT_SECONDS` (20s), one retry — a definition is short, so it runs
+on the routing budget.

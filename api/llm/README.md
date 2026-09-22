@@ -1,7 +1,8 @@
 # api/llm
 
 The OpenAI integration. It routes each chat query to a single tool, confirms
-which entity candidates the query names, and writes `paper_analysis` answers.
+which entity candidates the query names, writes `paper_analysis` answers, and
+defines phrases a reader highlights.
 
 ```
 rag_search -> filter_entity_matches -> classify_intent -> IntentResult -> api.paper_search
@@ -12,8 +13,9 @@ rag_search -> filter_entity_matches -> classify_intent -> IntentResult -> api.pa
 | File | Purpose |
 |---|---|
 | `tools.py` | Pydantic argument models for `paper_search`, `paper_analysis`, `no_match`, and their tool schemas |
-| `client.py` | `LlmClient`: a forced single tool call (`choose_tool`), or streamed free text (`stream_text`) |
+| `client.py` | `LlmClient`: a forced single tool call (`choose_tool`), or free text, whole (`complete_text`) or streamed (`stream_text`) |
 | `analysis.py` | The answer prompt: numbered passages in, prose citing `[n]` out |
+| `definition.py` | The definition prompt: a phrase and its paragraph in, plain language out |
 | `intent.py` | The prompt, candidate payload, and joining the model's entities back to candidates |
 | `answer_entities.py` | Its own tool: every phrase naming each candidate in a generated answer |
 | `models.py` | `IntentResult` / `IntentEntity`, returned on `RagSearchResponse.intent` |

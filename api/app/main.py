@@ -15,6 +15,7 @@ from api.cache import DocumentCache
 from api.redis_conn import close_client as close_redis
 from api.corpus import protected_router as corpus_protected_router
 from api.corpus import router as corpus_router
+from api.define_term import router as define_router
 from api.entity_matching import get_cutoffs
 from api.group_search import router as group_search_router
 from api.groups import router as groups_router
@@ -86,6 +87,7 @@ app.include_router(corpus_protected_router)
 app.include_router(corpus_router)
 app.include_router(groups_router)
 app.include_router(group_search_router)
+app.include_router(define_router)
 
 dist = settings.sciterm_ui_dist
 dev_ui_url = settings.sciterm_ui_dev_url

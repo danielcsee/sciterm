@@ -80,7 +80,7 @@ export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitati
 
   return (
     <section className="chat" aria-label="Chat">
-      <div className="chat-scroll">
+      <div className="chat-scroll" data-definable>
         {landingVisible && (
           <div className={`landing${landingLeaving ? ' landing-exit' : ''}`}>
             <h1 className="landing-title">Ask the literature a question</h1>
@@ -107,7 +107,7 @@ export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitati
         {/* Held back until the landing block has finished leaving, so the two
             never occupy the same space. */}
         {!landingVisible && (
-          <ol className="messages">
+          <ol className="messages" data-definable-column>
             {messages.map((message, index) => (
               <li key={message.id} className={`message message-${message.role}`}>
                 <div className="message-role">

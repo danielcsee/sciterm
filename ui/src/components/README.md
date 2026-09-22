@@ -80,7 +80,8 @@ adds/selects its tab.
 
 Search against `/pb/search`. Infinite scroll via `IntersectionObserver`;
 superseded requests abort via `AbortSignal`. `resultWarning()` disables results
-that cannot be opened.
+that cannot be opened. A highlighted term's definition (`../define`) takes the
+results' place until closed or until the next search, which clears it.
 
 ## `ReferenceImporter.tsx`
 
