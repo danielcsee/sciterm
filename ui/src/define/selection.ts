@@ -15,7 +15,7 @@ export const MIN_GUTTER_WIDTH = 64
 export const DEFINABLE_ATTR = 'data-definable'
 /** Marks the text column inside it; the gutter is what lies to its right. */
 export const DEFINABLE_COLUMN_ATTR = 'data-definable-column'
-/** CSS Custom Highlight name for the phrase whose definition is open. */
+/** CSS Custom Highlight name for the phrases whose definitions are saved. */
 export const DEFINITION_UNDERLINE = 'definition-request'
 
 const BLOCK_SELECTOR = 'p, li, h1, h2, h3, h4, h5, h6, blockquote, dd, td, th, figcaption'
@@ -126,18 +126,17 @@ function textSelector(range: Range, source: Element): TextSelector {
   }
 }
 
-/** Keep the requested phrase visibly tied to the definition shown in the sidebar. */
-export function underlineDefinitionRange(range: Range): void {
+/** Replace the underlined ranges with `ranges`: one per annotation on screen. */
+export function setDefinitionUnderlines(ranges: Range[]): void {
   if (!('highlights' in CSS) || typeof globalThis.Highlight === 'undefined') return
-  const underline = CSS.highlights.get(DEFINITION_UNDERLINE)
-  if (underline) {
-    underline.add(range)
+  if (ranges.length === 0) {
+    CSS.highlights.delete(DEFINITION_UNDERLINE)
     return
   }
-  CSS.highlights.set(DEFINITION_UNDERLINE, new globalThis.Highlight(range))
+  CSS.highlights.set(DEFINITION_UNDERLINE, new globalThis.Highlight(...ranges))
 }
 
-export function clearDefinitionUnderline(): void {
+export function clearDefinitionUnderlines(): void {
   if (!('highlights' in CSS)) return
   CSS.highlights.delete(DEFINITION_UNDERLINE)
 }

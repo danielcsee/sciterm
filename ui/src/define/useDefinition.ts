@@ -3,10 +3,14 @@ import { ApiError } from '../api'
 import { defineTerm } from './api'
 import type { AnnotationDraft, UserAnnotation } from './types'
 
+/** Every entry keeps its annotation, whose selector places its underline. */
 export type Definition =
-  | { id: string; phrase: string; status: 'loading' }
+  | { id: string; phrase: string; status: 'loading'; annotation: AnnotationDraft }
   | { id: string; phrase: string; status: 'done'; text: string; annotation: UserAnnotation }
-  | { id: string; phrase: string; status: 'error'; error: string }
+  | { id: string; phrase: string; status: 'error'; error: string; annotation: AnnotationDraft }
+
+/** Shown for a saved annotation whose definition never arrived. */
+const UNFINISHED_DEFINITION = 'The definition did not finish. Highlight it again to retry.'
 
 export interface DefinitionState {
   definitions: Definition[]
@@ -29,7 +33,7 @@ export function useDefinition(): DefinitionState {
     const controller = new AbortController()
     controllersRef.current.add(controller)
     setDefinitions((current) => [
-      { id: annotation.id, phrase: annotation.phrase, status: 'loading' },
+      { id: annotation.id, phrase: annotation.phrase, status: 'loading', annotation },
       ...current,
     ])
     void fetchDefinition(
@@ -41,15 +45,7 @@ export function useDefinition(): DefinitionState {
   }, [])
 
   const hydrate = useCallback((annotations: UserAnnotation[]) => {
-    setDefinitions(
-      annotations.map((annotation) => ({
-        id: annotation.id,
-        phrase: annotation.phrase,
-        status: 'done' as const,
-        text: annotation.definition,
-        annotation,
-      })),
-    )
+    setDefinitions(annotations.map(savedDefinition))
   }, [])
 
   useEffect(() => {
@@ -58,6 +54,13 @@ export function useDefinition(): DefinitionState {
   }, [])
 
   return { definitions, request, hydrate, clear }
+}
+
+function savedDefinition(annotation: UserAnnotation): Definition {
+  const common = { id: annotation.id, phrase: annotation.phrase, annotation }
+  return annotation.definition === null
+    ? { ...common, status: 'error', error: UNFINISHED_DEFINITION }
+    : { ...common, status: 'done', text: annotation.definition }
 }
 
 async function fetchDefinition(
@@ -90,6 +93,7 @@ async function fetchDefinition(
       phrase: annotation.phrase,
       status: 'error',
       error,
+      annotation,
     })
   } finally {
     controllers.delete(controller)

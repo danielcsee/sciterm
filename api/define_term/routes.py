@@ -10,7 +10,10 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api.annotations.manager import AnnotationManager, AnnotationSourceError
+from sqlalchemy.orm import Session
+
+from api.annotations.manager import AnnotationManager, AnnotationOwner, AnnotationSourceError
+from api.annotations.schemas import AnnotationCreate, UserAnnotationOut
 from api.auth import Principal, require_user
 from api.chats.manager import MissingChatOwnerError, owner_for_principal
 from api.db import session_scope
@@ -29,26 +32,46 @@ def define(
 ) -> DefineTermResponse:
     """Define `phrase` in simpler language, read in its `surrounding_context`.
 
-    503 when no OpenAI key is configured; 502 when OpenAI fails or says nothing.
+    The annotation is committed before OpenAI is asked, so a reload mid-request
+    (or a failed definition) still finds it. 503 when no OpenAI key is
+    configured; 502 when OpenAI fails or says nothing.
     """
     client = get_llm_client()
     if client is None:
         raise HTTPException(status_code=503, detail="Definitions need an OpenAI key.")
+    annotation = (
+        _save_annotation(request.annotation, principal)
+        if request.annotation is not None
+        else None
+    )
     try:
         definition = define_term(client, request.phrase, request.surrounding_context)
     except LlmError as exc:
         log.warning("define failed: %s", exc)
         raise HTTPException(status_code=502, detail="Could not get a definition.") from exc
-    annotation = None
-    if request.annotation is not None:
-        try:
-            with session_scope() as session:
-                owner = owner_for_principal(session, principal)
-                annotation = AnnotationManager(session, owner).create(
-                    request.annotation, definition
-                )
-        except AnnotationSourceError as exc:
-            raise HTTPException(status_code=404, detail=str(exc)) from exc
-        except MissingChatOwnerError as exc:
-            raise HTTPException(status_code=401, detail="annotation owner is unavailable") from exc
+    if annotation is not None:
+        annotation = _save_definition(annotation, definition, principal)
     return DefineTermResponse(definition=definition, annotation=annotation)
+
+
+def _save_annotation(request: AnnotationCreate, principal: Principal) -> UserAnnotationOut:
+    try:
+        with session_scope() as session:
+            return AnnotationManager(session, _owner(session, principal)).create(request)
+    except AnnotationSourceError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+def _save_definition(
+    annotation: UserAnnotationOut, definition: str, principal: Principal
+) -> UserAnnotationOut:
+    with session_scope() as session:
+        manager = AnnotationManager(session, _owner(session, principal))
+        return manager.set_definition(annotation, definition)
+
+
+def _owner(session: Session, principal: Principal) -> AnnotationOwner:
+    try:
+        return owner_for_principal(session, principal)
+    except MissingChatOwnerError as exc:
+        raise HTTPException(status_code=401, detail="annotation owner is unavailable") from exc

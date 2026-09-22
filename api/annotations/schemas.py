@@ -49,7 +49,8 @@ class AnnotationCreate(BaseModel):
 
 
 class UserAnnotationOut(AnnotationCreate):
-    definition: str
+    #: Null until the definition arrives, and after a failed attempt.
+    definition: Optional[str]
     position: int
     created_at: dt.datetime
     updated_at: dt.datetime

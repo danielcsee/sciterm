@@ -6,19 +6,17 @@ shows in the sidebar under the Search PubTator box.
 
 ## Files
 
-**`selection.ts`** — reads the highlight out of the DOM: the phrase, the
-paragraph around it, and where the button goes. Only text inside an element
-marked `data-definable` counts; the text column inside it is marked
-`data-definable-column`, and the button sits in the gutter to that column's
-right, level with the first highlighted line. With no gutter at least 64px
-wide, no button is shown rather than one covering text. It also registers the
-selected range with the CSS Custom Highlight API so the requested phrase keeps
-a yellow underline while its definition is open.
+**`selection.ts`** — reads the highlight out of a `data-definable` region: the
+phrase, its paragraph (none past 12 words), and a gutter spot for the button
+right of the `data-definable-column`, or no button if the gutter is under 64px.
+It also owns the CSS Custom Highlight that underlines defined phrases in yellow.
 
-Highlights over 12 words are sent with `surrounding_context: null`. Otherwise
-the context is the block (`p`, `li`, heading…) the highlight starts in —
-split at blank lines, since a chat answer is one pre-wrap `<p>` — plus the one
-it ends in, if different.
+**`anchor.ts`** — re-finds a saved annotation's text: its source element by
+the `data-annotation-*` attributes, then its offsets, falling back to the
+quote and prefix if the offsets drifted.
+
+**`useAnnotationUnderlines.ts`** — underlines every definition in the sidebar,
+new or reloaded, re-anchoring whenever the page re-renders.
 
 **`useHighlight.ts`** — re-reads the highlight on mouse release, keyboard
 selection, scroll and resize; never mid-drag.
@@ -28,15 +26,14 @@ cancelled so clicking it keeps the highlight.
 
 **`useDefinition.ts`** / **`api.ts`** — the definitions on screen, newest
 first, the typed define call, and owner-scoped annotation reads. Requests carry
-their source selector, and the returned definition is already durable.
+their source selector; the server saves it before defining. A reloaded
+annotation whose definition never arrived shows as an error.
 
-**`DefinitionPanel.tsx`** — a vertically scrollable list of phrases and their
-spinner, definition or error. A new definition scrolls the list back to its
-newest entry at the top.
+**`DefinitionPanel.tsx`** — the scrollable list of phrases with their
+spinner, definition or error; a new one scrolls it back to the top.
 
 ## Wiring
 
-`App` owns `useDefinition()` and renders the button, gated by `requireAuth`
-(it spends OpenAI tokens). `SearchPubTator` shows the definition list in place
-of its results, hidden rather than unmounted, and clears it when a search
-starts.
+`App` owns `useDefinition()` and `useAnnotationUnderlines()`, and renders the
+button gated by `requireAuth`. `SearchPubTator` shows the list in place of its
+results; a search clears it.

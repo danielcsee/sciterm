@@ -19,7 +19,8 @@ export interface AnnotationDraft {
 }
 
 export interface UserAnnotation extends AnnotationDraft {
-  definition: string
+  /** Null while the definition is being generated, or if that failed. */
+  definition: string | null
   position: number
   created_at: string
   updated_at: string

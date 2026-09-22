@@ -29,8 +29,9 @@ beside the other prompts; this package is only the HTTP surface.
 server does not re-check the word count; it only caps lengths, so one click
 cannot send a whole paper.
 
-**Saved before return.** Once OpenAI returns a definition, the route validates
-the owner-scoped chat or paper source and inserts the annotation before replying.
+**Saved first.** The route validates the owner-scoped chat or paper source and
+commits the annotation before asking OpenAI, then stores the definition. A
+reload mid-request, or a 502, still leaves the annotation saved.
 
 **One whole answer, not a stream.** Definitions are about 100 words, so
 `LlmClient.complete_text` returns them whole on the routing timeout
@@ -38,4 +39,4 @@ the owner-scoped chat or paper source and inserts the annotation before replying
 
 ## Dependencies
 
-`fastapi`, `pydantic`, `api.auth`, `api.llm`.
+`fastapi`, `pydantic`, `api.annotations`, `api.auth`, `api.llm`.

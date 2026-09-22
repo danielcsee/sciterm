@@ -4,7 +4,8 @@ Durable, owner-scoped definitions created from highlighted chat or paper text.
 Each row keeps a live source association plus a text quote/position selector so
 the highlight can be re-anchored after reload.
 
-`POST /define` creates annotations after the definition succeeds. `GET
+`POST /define` saves the annotation first, with a null definition, then fills
+it in once OpenAI answers; a failed definition leaves the annotation saved. `GET
 /annotations?chat_id=…` and `GET /annotations?paper_id=…` read them. Chat
 annotations are also returned with a saved chat.
 
