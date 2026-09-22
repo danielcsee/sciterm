@@ -6,10 +6,9 @@ shows in the sidebar under the Search PubTator box.
 
 ## Files
 
-**`selection.ts`** — reads the highlight out of a `data-definable` region: the
-phrase, its paragraph (none past 12 words), and a gutter spot for the button
-right of the `data-definable-column`, or no button if the gutter is under 64px.
-It also owns the CSS Custom Highlight that underlines defined phrases in yellow.
+**`selection.ts`** — reads the highlight in a `data-definable` region: phrase,
+paragraph (none past 12 words), and a button spot in the gutter right of the
+`data-definable-column` (none under 64px). Owns the yellow CSS underline.
 
 **`anchor.ts`** — re-finds a saved annotation's text: its source element by
 the `data-annotation-*` attributes, then its offsets, falling back to the
@@ -19,21 +18,22 @@ quote and prefix if the offsets drifted.
 new or reloaded, re-anchoring whenever the page re-renders.
 
 **`useHighlight.ts`** — re-reads the highlight on mouse release, keyboard
-selection, scroll and resize; never mid-drag.
+selection, scroll and resize.
 
-**`DefineTermButton.tsx`** — the fixed-position button. Its mousedown is
-cancelled so clicking it keeps the highlight.
+**`DefineTermButton.tsx`** — the button; its mousedown is cancelled to keep
+the highlight.
 
 **`useDefinition.ts`** / **`api.ts`** — the definitions on screen, newest
-first, the typed define call, and owner-scoped annotation reads. Requests carry
-their source selector; the server saves it before defining. A reloaded
-annotation whose definition never arrived shows as an error.
+first, the typed define call, and owner-scoped annotation reads and deletes.
+Hiding one leaves it saved but drops it, and its underline, until a reload. The server
+saves the selector before defining; a definition that never arrived shows as
+an error.
 
 **`DefinitionPanel.tsx`** — the scrollable list of phrases with their
-spinner, definition or error; a new one scrolls it back to the top.
+spinner, definition or error; a new one scrolls to the top. Each card
+has Hide and a red bin that permanently deletes it.
 
 ## Wiring
 
-`App` owns `useDefinition()` and `useAnnotationUnderlines()`, and renders the
-button gated by `requireAuth`. `SearchPubTator` shows the list in place of its
-results; a search clears it.
+`App` owns both hooks and gates the button with `requireAuth`.
+`SearchPubTator` shows the list in place of its results; a search clears it.

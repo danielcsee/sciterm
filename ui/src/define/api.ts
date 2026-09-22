@@ -54,3 +54,11 @@ export async function listAnnotations(
   const body = (await response.json()) as { annotations: UserAnnotation[] }
   return body.annotations
 }
+
+/** Permanently removes one of the caller's annotations. */
+export async function deleteAnnotation(annotationId: string): Promise<void> {
+  const response = await authFetch(`/annotations/${encodeURIComponent(annotationId)}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) throw new ApiError('Could not delete that annotation.', response.status)
+}

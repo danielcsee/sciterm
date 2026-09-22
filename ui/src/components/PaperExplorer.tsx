@@ -22,6 +22,8 @@ interface Props {
   /** Highlighted terms' definitions, shown newest first under the search box. */
   definitions: Definition[]
   onClearDefinition: () => void
+  onHideDefinition: (id: string) => void
+  onDeleteDefinition: (id: string) => Promise<void>
 }
 
 /**
@@ -37,6 +39,8 @@ export default function PaperExplorer({
   onOpenPaper,
   definitions,
   onClearDefinition,
+  onHideDefinition,
+  onDeleteDefinition,
 }: Props) {
   // Both panels queue through here, so gating this one function covers the
   // search results and the reference list at once — including the case where a
@@ -90,6 +94,8 @@ export default function PaperExplorer({
           importing={importing}
           definitions={definitions}
           onClearDefinition={onClearDefinition}
+          onHideDefinition={onHideDefinition}
+          onDeleteDefinition={onDeleteDefinition}
         />
       </div>
 

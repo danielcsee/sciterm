@@ -21,6 +21,8 @@ interface Props {
   /** Shown newest first in place of the results until the next search. */
   definitions: Definition[]
   onClearDefinition: () => void
+  onHideDefinition: (id: string) => void
+  onDeleteDefinition: (id: string) => Promise<void>
 }
 
 /** Search PubTator and queue results for import. */
@@ -29,6 +31,8 @@ export default function SearchPubTator({
   importing,
   definitions,
   onClearDefinition,
+  onHideDefinition,
+  onDeleteDefinition,
 }: Props) {
   // Every search is a PubTator call against a shared rate limit, so the search
   // bar is a gate in the same way the chat composer is.
@@ -205,7 +209,11 @@ export default function SearchPubTator({
       </form>
 
       {definitions.length > 0 && (
-        <DefinitionPanel definitions={definitions} onClose={onClearDefinition} />
+        <DefinitionPanel
+          definitions={definitions}
+          onHide={onHideDefinition}
+          onDelete={onDeleteDefinition}
+        />
       )}
 
       {totalResults > 0 && definitions.length === 0 && (
@@ -214,8 +222,8 @@ export default function SearchPubTator({
         </p>
       )}
 
-      {/* Hidden, not unmounted, under definitions: closing them brings back
-          the results, their scroll position and the selection. */}
+      {/* Hidden, not unmounted, under definitions: once they are all hidden or
+          deleted, the results come back with their scroll and selection. */}
       <div className="results" ref={scrollRef} hidden={definitions.length > 0}>
         {error && <p className="results-message results-error">{error}</p>}
         {empty && <p className="results-message">No papers matched that query.</p>}

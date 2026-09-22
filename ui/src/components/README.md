@@ -39,9 +39,8 @@ top of the chat once, and then left alone to run off the bottom. Scrolling an
 element to the top needs a screen of content under it, so the newest answer is
 floored at the chat's height.
 
-`ChatWindow` places Save Conversation beside Send. It opens the naming modal
-for an owner-scoped snapshot of the completed in-memory conversation; pending
-responses cannot be saved.
+`ChatWindow` has no save control: the first message creates the chat on the
+server and each later turn is appended to it.
 
 ## `AnalysisAnswer.tsx`, `CitationList.tsx`, `CitationMarker.tsx`
 
@@ -208,6 +207,11 @@ Opens a paper in a background tab. A **sibling** of the card, never a child.
 
 The square-and-arrow glyph on `OpenInTabButton`, shared with the group tile's
 Search button so both read as "go to this".
+
+## `TrashIcon.tsx`
+
+The lidded bin on every permanent delete (annotations, conversation tiles),
+drawn red by `.icon-delete`.
 
 ## The access-code gate
 

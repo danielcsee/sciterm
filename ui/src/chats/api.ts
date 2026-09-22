@@ -66,6 +66,12 @@ export async function loadSavedChat(chatId: number, signal?: AbortSignal): Promi
   return (await response.json()) as SavedChat
 }
 
+/** Permanently removes a chat, with its messages and annotations. */
+export async function deleteSavedChat(chatId: number): Promise<void> {
+  const response = await authFetch(`/chats/${chatId}`, { method: 'DELETE' })
+  if (!response.ok) throw new Error(await errorDetail(response, 'Could not delete that chat.'))
+}
+
 export async function startChat(turn: ChatTurn): Promise<SavedChat> {
   return writeTurn('/chats', turn)
 }

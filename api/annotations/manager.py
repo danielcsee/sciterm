@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Protocol
+from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -13,6 +14,8 @@ from api.annotations.schemas import (
     AnnotationSource,
     UserAnnotationOut,
 )
+
+
 class AnnotationOwner(Protocol):
     def params(self) -> dict[str, int | None]: ...
 
@@ -60,6 +63,14 @@ class AnnotationManager:
 
     def list_for_paper(self, paper_id: int) -> list[UserAnnotationOut]:
         return self._list(chat_id=None, paper_id=paper_id)
+
+    def delete(self, annotation_id: UUID) -> bool:
+        """Remove one of the owner's annotations; False if it is not theirs."""
+        deleted = self._session.execute(
+            text(queries.DELETE_ANNOTATION_SQL),
+            {"id": str(annotation_id), **self._owner.params()},
+        ).scalar_one_or_none()
+        return deleted is not None
 
     def _resolve_source(self, source: AnnotationSource) -> int | None:
         owner_params = self._owner.params()

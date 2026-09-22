@@ -40,6 +40,7 @@ import {
 import type { Message, PaperFocus } from './types'
 import {
   appendChatTurn,
+  deleteSavedChat,
   listSavedChats,
   loadSavedChat,
   savedMessages,
@@ -102,7 +103,7 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([])
   const [savedChats, setSavedChats] = useState<SavedChatSummary[]>([])
   const [activeChatId, setActiveChatId] = useState<number | null>(null)
-  const [chatSaveBusy, setChatSaveBusy] = useState(false)
+  const [chatOpening, setChatOpening] = useState(false)
   const [savedChatsLoading, setSavedChatsLoading] = useState(false)
   const [conversationListError, setConversationListError] = useState<string | null>(null)
   const [tabs, setTabs] = useState<PaperTab[]>(() => {
@@ -385,7 +386,7 @@ export default function App() {
   }
 
   async function loadChat(chatId: number): Promise<boolean> {
-    setChatSaveBusy(true)
+    setChatOpening(true)
     setConversationListError(null)
     try {
       const chat = await loadSavedChat(chatId)
@@ -399,12 +400,23 @@ export default function App() {
       )
       return false
     } finally {
-      setChatSaveBusy(false)
+      setChatOpening(false)
     }
   }
 
   async function openConversation(chatId: number) {
     if (await loadChat(chatId)) navigate(CHAT)
+  }
+
+  async function deleteConversation(chatId: number) {
+    await deleteSavedChat(chatId)
+    setSavedChats((chats) => chats.filter((chat) => chat.chat_id !== chatId))
+    // The open chat is gone, so the next message must start a new one.
+    if (chatId === activeChatId) {
+      setActiveChatId(null)
+      setMessages([])
+      definition.clear()
+    }
   }
 
   return (
@@ -501,10 +513,11 @@ export default function App() {
           <ConversationsView
             conversations={savedChats}
             loading={savedChatsLoading}
-            opening={chatSaveBusy}
+            opening={chatOpening}
             error={conversationListError}
             onClose={() => navigate(CHAT)}
             onOpen={(chatId) => void openConversation(chatId)}
+            onDelete={deleteConversation}
           />
         ) : view.kind === 'corpus' ? (
           <CorpusView
@@ -531,6 +544,8 @@ export default function App() {
           onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
           definitions={definition.definitions}
           onClearDefinition={definition.clear}
+          onHideDefinition={definition.hide}
+          onDeleteDefinition={definition.remove}
         />
       </main>
       {/* Spends OpenAI tokens, so it is gated like the chat composer. */}
