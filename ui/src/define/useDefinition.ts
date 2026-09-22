@@ -1,54 +1,87 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { ApiError } from '../api'
 import { defineTerm } from './api'
 
 export type Definition =
-  | { phrase: string; status: 'loading' }
-  | { phrase: string; status: 'done'; text: string }
-  | { phrase: string; status: 'error'; error: string }
+  | { id: number; phrase: string; status: 'loading' }
+  | { id: number; phrase: string; status: 'done'; text: string }
+  | { id: number; phrase: string; status: 'error'; error: string }
 
 export interface DefinitionState {
-  definition: Definition | null
+  definitions: Definition[]
   request: (phrase: string, surroundingContext: string | null) => void
   clear: () => void
 }
 
-/** The one definition the sidebar shows. A new request supersedes the last. */
+/** Definitions shown newest first in the sidebar. */
 export function useDefinition(): DefinitionState {
-  const [definition, setDefinition] = useState<Definition | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
+  const [definitions, setDefinitions] = useState<Definition[]>([])
+  const controllersRef = useRef(new Set<AbortController>())
+  const nextIdRef = useRef(0)
 
   const clear = useCallback(() => {
-    abortRef.current?.abort()
-    abortRef.current = null
-    setDefinition(null)
+    abortAll(controllersRef.current)
+    setDefinitions([])
   }, [])
 
   const request = useCallback((phrase: string, surroundingContext: string | null) => {
-    abortRef.current?.abort()
+    const id = ++nextIdRef.current
     const controller = new AbortController()
-    abortRef.current = controller
-    setDefinition({ phrase, status: 'loading' })
-    void fetchDefinition(phrase, surroundingContext, controller.signal, setDefinition)
+    controllersRef.current.add(controller)
+    setDefinitions((current) => [{ id, phrase, status: 'loading' }, ...current])
+    void fetchDefinition(
+      id,
+      phrase,
+      surroundingContext,
+      controller,
+      controllersRef.current,
+      setDefinitions,
+    )
   }, [])
 
-  useEffect(() => () => abortRef.current?.abort(), [])
+  useEffect(() => {
+    const controllers = controllersRef.current
+    return () => abortAll(controllers)
+  }, [])
 
-  return { definition, request, clear }
+  return { definitions, request, clear }
 }
 
 async function fetchDefinition(
+  id: number,
   phrase: string,
   surroundingContext: string | null,
-  signal: AbortSignal,
-  setDefinition: (definition: Definition) => void,
+  controller: AbortController,
+  controllers: Set<AbortController>,
+  setDefinitions: Dispatch<SetStateAction<Definition[]>>,
 ): Promise<void> {
   try {
-    const response = await defineTerm({ phrase, surrounding_context: surroundingContext }, signal)
-    setDefinition({ phrase, status: 'done', text: response.definition })
+    const response = await defineTerm(
+      { phrase, surrounding_context: surroundingContext },
+      controller.signal,
+    )
+    replaceDefinition(setDefinitions, { id, phrase, status: 'done', text: response.definition })
   } catch (err) {
-    if (signal.aborted) return
+    if (controller.signal.aborted) return
     const error = err instanceof ApiError ? err.message : 'Could not reach the definition service.'
-    setDefinition({ phrase, status: 'error', error })
+    replaceDefinition(setDefinitions, { id, phrase, status: 'error', error })
+  } finally {
+    controllers.delete(controller)
   }
+}
+
+function replaceDefinition(
+  setDefinitions: Dispatch<SetStateAction<Definition[]>>,
+  replacement: Definition,
+): void {
+  setDefinitions((current) =>
+    current.map((definition) =>
+      definition.id === replacement.id ? replacement : definition,
+    ),
+  )
+}
+
+function abortAll(controllers: Set<AbortController>): void {
+  controllers.forEach((controller) => controller.abort())
+  controllers.clear()
 }

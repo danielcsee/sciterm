@@ -19,8 +19,8 @@ interface Props {
   referencesFor: ReferenceTarget | null
   onCloseReferences: () => void
   onOpenPaper: (paperId: number, title: string | null) => void
-  /** The highlighted term's definition, shown under the search box. */
-  definition: Definition | null
+  /** Highlighted terms' definitions, shown newest first under the search box. */
+  definitions: Definition[]
   onClearDefinition: () => void
 }
 
@@ -35,7 +35,7 @@ export default function PaperExplorer({
   referencesFor,
   onCloseReferences,
   onOpenPaper,
-  definition,
+  definitions,
   onClearDefinition,
 }: Props) {
   // Both panels queue through here, so gating this one function covers the
@@ -88,7 +88,7 @@ export default function PaperExplorer({
         <SearchPubTator
           onImport={(pmids, papers) => void handleImport(pmids, papers)}
           importing={importing}
-          definition={definition}
+          definitions={definitions}
           onClearDefinition={onClearDefinition}
         />
       </div>

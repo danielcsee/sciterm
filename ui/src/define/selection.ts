@@ -58,6 +58,11 @@ export function readHighlight(selection: Selection | null): Highlight | null {
 /** Keep the requested phrase visibly tied to the definition shown in the sidebar. */
 export function underlineDefinitionRange(range: Range): void {
   if (!('highlights' in CSS) || typeof globalThis.Highlight === 'undefined') return
+  const underline = CSS.highlights.get(DEFINITION_UNDERLINE)
+  if (underline) {
+    underline.add(range)
+    return
+  }
   CSS.highlights.set(DEFINITION_UNDERLINE, new globalThis.Highlight(range))
 }
 

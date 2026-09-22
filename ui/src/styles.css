@@ -1987,7 +1987,11 @@ body {
 
 .define-term-button:hover { background: var(--accent-soft); }
 
-.definition { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; }
+.definitions { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; }
+
+.definition { padding: 12px 0; }
+.definition:first-child { padding-top: 0; }
+.definition + .definition { border-top: 1px solid var(--border); }
 
 .definition-head {
   display: flex;
