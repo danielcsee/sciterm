@@ -1,12 +1,16 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { AnswerEntity, Citation } from '../api'
 import { markPhrases } from '../entityPhrases'
+import AnswerEntityPills from './AnswerEntityPills'
 import CitationMarker from './CitationMarker'
 
 interface Props {
   answer: string
   citations: Citation[]
-  /** Entities the answer names; each phrase naming one is underlined. */
+  /**
+   * Entities the answer names, listed as pills after it; hovering a pill
+   * underlines each phrase naming that entity.
+   */
   entities: AnswerEntity[]
   onOpenCitation: (citation: Citation) => void
   /** Drawn after the last word, e.g. a spinner while more is coming. */
@@ -40,8 +44,8 @@ export function splitCitations(answer: string, known: ReadonlySet<number>): Answ
 }
 
 /**
- * The generated answer, with each `[n]` a live citation marker and each
- * phrase naming a recognised entity underlined.
+ * The generated answer, with each `[n]` a live citation marker, followed by a
+ * pill per recognised entity. Only the hovered pill's phrases are underlined.
  */
 export default function AnalysisAnswer({
   answer,
@@ -52,36 +56,43 @@ export default function AnalysisAnswer({
 }: Props) {
   const byNumber = new Map(citations.map((citation) => [citation.number, citation]))
   const parts = splitCitations(answer, new Set(byNumber.keys()))
+  const [activeId, setActiveId] = useState<number | null>(null)
 
   return (
-    <p className="rag-text analysis-answer">
-      {parts.map((part, index) =>
-        part.kind === 'text' ? (
-          <span key={index}>
-            <EntityPhrases text={part.text} entities={entities} />
-          </span>
-        ) : (
-          <CitationMarker
-            key={index}
-            citation={byNumber.get(part.number) as Citation}
-            onOpen={onOpenCitation}
-          />
-        ),
-      )}
-      {trailing}
-    </p>
+    <>
+      <p className="rag-text analysis-answer">
+        {parts.map((part, index) =>
+          part.kind === 'text' ? (
+            <span key={index}>
+              <EntityPhrases text={part.text} entities={entities} activeId={activeId} />
+            </span>
+          ) : (
+            <CitationMarker
+              key={index}
+              citation={byNumber.get(part.number) as Citation}
+              onOpen={onOpenCitation}
+            />
+          ),
+        )}
+        {trailing}
+      </p>
+      <AnswerEntityPills entities={entities} onActivate={setActiveId} />
+    </>
   )
 }
 
-/** One stretch of prose, with the phrases naming entities underlined. */
-function EntityPhrases({ text, entities }: { text: string; entities: AnswerEntity[] }) {
+interface EntityPhrasesProps {
+  text: string
+  entities: AnswerEntity[]
+  /** The hovered pill's entity: only its phrases are underlined. */
+  activeId: number | null
+}
+
+/** One stretch of prose, with the active entity's phrases underlined. */
+function EntityPhrases({ text, entities, activeId }: EntityPhrasesProps) {
   return markPhrases(text, entities).map((run, index) =>
-    run.entity ? (
-      <span
-        key={index}
-        className="answer-entity"
-        title={`${run.entity.name ?? run.entity.identifier} · ${run.entity.entity_type}`}
-      >
+    run.entity && run.entity.entity_id === activeId ? (
+      <span key={index} className="answer-entity">
         {run.text}
       </span>
     ) : (
