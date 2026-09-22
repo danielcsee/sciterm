@@ -1,7 +1,7 @@
 import { useHighlight } from './useHighlight'
 
 interface Props {
-  onDefine: (phrase: string, surroundingContext: string | null) => void
+  onDefine: (phrase: string, surroundingContext: string | null, range: Range) => void
 }
 
 /**
@@ -19,7 +19,7 @@ export default function DefineTermButton({ onDefine }: Props) {
       style={{ top: highlight.top, left: highlight.left, maxWidth: highlight.maxWidth }}
       // Keep the highlight: a mousedown on a button would otherwise clear it.
       onMouseDown={(event) => event.preventDefault()}
-      onClick={() => onDefine(highlight.phrase, highlight.surroundingContext)}
+      onClick={() => onDefine(highlight.phrase, highlight.surroundingContext, highlight.range)}
     >
       Define this term
     </button>

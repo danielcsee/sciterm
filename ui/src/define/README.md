@@ -11,7 +11,9 @@ paragraph around it, and where the button goes. Only text inside an element
 marked `data-definable` counts; the text column inside it is marked
 `data-definable-column`, and the button sits in the gutter to that column's
 right, level with the first highlighted line. With no gutter at least 64px
-wide, no button is shown rather than one covering text.
+wide, no button is shown rather than one covering text. It also registers the
+selected range with the CSS Custom Highlight API so the requested phrase keeps
+a yellow underline while its definition is open.
 
 Highlights over 12 words are sent with `surrounding_context: null`. Otherwise
 the context is the block (`p`, `li`, heading…) the highlight starts in —
