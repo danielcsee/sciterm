@@ -12,6 +12,7 @@ from api.app.health import router as health_router
 from api.auth import admin_router, router as auth_router
 from api.auth.config import get_auth_settings
 from api.cache import DocumentCache
+from api.chats import router as chats_router
 from api.redis_conn import close_client as close_redis
 from api.corpus import protected_router as corpus_protected_router
 from api.corpus import router as corpus_router
@@ -88,6 +89,7 @@ app.include_router(corpus_router)
 app.include_router(groups_router)
 app.include_router(group_search_router)
 app.include_router(define_router)
+app.include_router(chats_router)
 
 dist = settings.sciterm_ui_dist
 dev_ui_url = settings.sciterm_ui_dev_url

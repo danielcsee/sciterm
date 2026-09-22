@@ -32,6 +32,10 @@ same reason. They use this
 on `Base.metadata`; forget that import and autogenerate proposes dropping
 them.
 
+Saved-chat tables live in [`api/chats/models.py`](../chats/models.py). They
+retain ordered messages plus citation and entity-pill snapshots, and are also
+imported by `env.py` so migration autogeneration sees them.
+
 ## Three design rules encoded here
 
 **Store what cannot be recomputed locally.** Authors, references, annotations

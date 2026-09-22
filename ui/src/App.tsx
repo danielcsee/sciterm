@@ -34,6 +34,16 @@ import {
   type View,
 } from './navigation'
 import type { Message, PaperFocus } from './types'
+import {
+  createSavedChat,
+  isChatSaveable,
+  listSavedChats,
+  loadSavedChat,
+  savedMessages,
+  suggestedChatTitle,
+  updateSavedChat,
+  type SavedChatSummary,
+} from './chats/api'
 
 /**
  * Whether a click should be left to the browser: a modified or non-primary
@@ -46,6 +56,11 @@ function isNewTabClick(event: MouseEvent): boolean {
 export default function App() {
   const { unlocked, promptForCode, requireAuth } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
+  const [savedChats, setSavedChats] = useState<SavedChatSummary[]>([])
+  const [activeChatId, setActiveChatId] = useState<number | null>(null)
+  const [activeChatTitle, setActiveChatTitle] = useState<string | null>(null)
+  const [chatSaveBusy, setChatSaveBusy] = useState(false)
+  const [chatSaveError, setChatSaveError] = useState<string | null>(null)
   const [tabs, setTabs] = useState<PaperTab[]>(() => {
     // Tabs survive a reload; the URL still decides which one is showing. A
     // shared /paper/12 link opens that tab too, with a placeholder label until
@@ -76,6 +91,22 @@ export default function App() {
   // Which paper's references the side panel is showing, if any.
   const [referencesFor, setReferencesFor] = useState<ReferenceTarget | null>(null)
   const definition = useDefinition()
+
+  useEffect(() => {
+    if (!unlocked) {
+      setSavedChats([])
+      return
+    }
+    const controller = new AbortController()
+    listSavedChats(controller.signal)
+      .then(setSavedChats)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setChatSaveError(error instanceof Error ? error.message : 'Could not list saved chats.')
+        }
+      })
+    return () => controller.abort()
+  }, [unlocked])
 
   useEffect(() => {
     saveTabs(tabs.filter((tab) => !missing.has(tab.paperId)))
@@ -272,6 +303,41 @@ export default function App() {
     update((message) => endRagStream(message, finished))
   }
 
+  async function loadChat(chatId: number) {
+    setChatSaveBusy(true)
+    setChatSaveError(null)
+    try {
+      const chat = await loadSavedChat(chatId)
+      setMessages(savedMessages(chat))
+      setActiveChatId(chat.chat_id)
+      setActiveChatTitle(chat.title)
+    } catch (error) {
+      setChatSaveError(error instanceof Error ? error.message : 'Could not load that chat.')
+    } finally {
+      setChatSaveBusy(false)
+    }
+  }
+
+  async function saveChat() {
+    if (!isChatSaveable(messages)) return
+    setChatSaveBusy(true)
+    setChatSaveError(null)
+    const title = activeChatTitle ?? suggestedChatTitle(messages)
+    try {
+      const chat =
+        activeChatId === null
+          ? await createSavedChat(title, messages)
+          : await updateSavedChat(activeChatId, title, messages)
+      setActiveChatId(chat.chat_id)
+      setActiveChatTitle(chat.title)
+      setSavedChats(await listSavedChats())
+    } catch (error) {
+      setChatSaveError(error instanceof Error ? error.message : 'Could not save this chat.')
+    } finally {
+      setChatSaveBusy(false)
+    }
+  }
+
   return (
     <div className="app">
       <header className="topbar">
@@ -371,6 +437,13 @@ export default function App() {
               openCitation(citation, entityIds, truncateTitle(title, 200))
             }
             onSmartGroupCreated={flashGroupsTab}
+            savedChats={savedChats}
+            activeChatId={activeChatId}
+            chatSaveBusy={chatSaveBusy}
+            chatSaveError={chatSaveError}
+            canSaveChat={unlocked && isChatSaveable(messages)}
+            onLoadChat={(chatId) => void loadChat(chatId)}
+            onSaveChat={() => void saveChat()}
           />
         )}
         <PaperExplorer
