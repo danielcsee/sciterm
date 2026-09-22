@@ -21,7 +21,7 @@ interface Props {
   /** Shown newest first in place of the results until the next search. */
   definitions: Definition[]
   onClearDefinition: () => void
-  onHideDefinition: (id: string) => void
+  onToggleDefinitionHidden: (id: string) => void
   onDeleteDefinition: (id: string) => Promise<void>
 }
 
@@ -31,7 +31,7 @@ export default function SearchPubTator({
   importing,
   definitions,
   onClearDefinition,
-  onHideDefinition,
+  onToggleDefinitionHidden,
   onDeleteDefinition,
 }: Props) {
   // Every search is a PubTator call against a shared rate limit, so the search
@@ -211,7 +211,7 @@ export default function SearchPubTator({
       {definitions.length > 0 && (
         <DefinitionPanel
           definitions={definitions}
-          onHide={onHideDefinition}
+          onToggleHidden={onToggleDefinitionHidden}
           onDelete={onDeleteDefinition}
         />
       )}

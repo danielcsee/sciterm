@@ -142,7 +142,7 @@ export default function App() {
   const [referencesFor, setReferencesFor] = useState<ReferenceTarget | null>(null)
   const definition = useDefinition()
   const annotations = useMemo(
-    () => definition.definitions.map((entry) => entry.annotation),
+    () => definition.definitions.filter((entry) => !entry.hidden).map((entry) => entry.annotation),
     [definition.definitions],
   )
   useAnnotationUnderlines(annotations)
@@ -591,7 +591,7 @@ export default function App() {
           onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
           definitions={definition.definitions}
           onClearDefinition={definition.clear}
-          onHideDefinition={definition.hide}
+          onToggleDefinitionHidden={definition.toggleHidden}
           onDeleteDefinition={definition.remove}
         />
       </main>
