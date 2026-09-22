@@ -19,8 +19,10 @@ import {
   useDefinition,
 } from './define'
 import { GroupsView } from './groups'
+import { ConversationsView } from './chats'
 import {
   CHAT,
+  CONVERSATIONS,
   CORPUS,
   GROUPS,
   loadTabs,
@@ -40,7 +42,6 @@ import {
   listSavedChats,
   loadSavedChat,
   savedMessages,
-  suggestedChatTitle,
   updateSavedChat,
   type SavedChatSummary,
 } from './chats/api'
@@ -61,6 +62,8 @@ export default function App() {
   const [activeChatTitle, setActiveChatTitle] = useState<string | null>(null)
   const [chatSaveBusy, setChatSaveBusy] = useState(false)
   const [chatSaveError, setChatSaveError] = useState<string | null>(null)
+  const [savedChatsLoading, setSavedChatsLoading] = useState(false)
+  const [conversationListError, setConversationListError] = useState<string | null>(null)
   const [tabs, setTabs] = useState<PaperTab[]>(() => {
     // Tabs survive a reload; the URL still decides which one is showing. A
     // shared /paper/12 link opens that tab too, with a placeholder label until
@@ -95,14 +98,23 @@ export default function App() {
   useEffect(() => {
     if (!unlocked) {
       setSavedChats([])
+      setSavedChatsLoading(false)
       return
     }
     const controller = new AbortController()
+    setSavedChatsLoading(true)
+    setConversationListError(null)
     listSavedChats(controller.signal)
-      .then(setSavedChats)
+      .then((chats) => {
+        setSavedChats(chats)
+        setSavedChatsLoading(false)
+      })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) {
-          setChatSaveError(error instanceof Error ? error.message : 'Could not list saved chats.')
+          setConversationListError(
+            error instanceof Error ? error.message : 'Could not list saved conversations.',
+          )
+          setSavedChatsLoading(false)
         }
       })
     return () => controller.abort()
@@ -303,26 +315,33 @@ export default function App() {
     update((message) => endRagStream(message, finished))
   }
 
-  async function loadChat(chatId: number) {
+  async function loadChat(chatId: number): Promise<boolean> {
     setChatSaveBusy(true)
-    setChatSaveError(null)
+    setConversationListError(null)
     try {
       const chat = await loadSavedChat(chatId)
       setMessages(savedMessages(chat))
       setActiveChatId(chat.chat_id)
       setActiveChatTitle(chat.title)
+      return true
     } catch (error) {
-      setChatSaveError(error instanceof Error ? error.message : 'Could not load that chat.')
+      setConversationListError(
+        error instanceof Error ? error.message : 'Could not load that conversation.',
+      )
+      return false
     } finally {
       setChatSaveBusy(false)
     }
   }
 
-  async function saveChat() {
-    if (!isChatSaveable(messages)) return
+  async function openConversation(chatId: number) {
+    if (await loadChat(chatId)) navigate(CHAT)
+  }
+
+  async function saveChat(title: string): Promise<boolean> {
+    if (!isChatSaveable(messages)) return false
     setChatSaveBusy(true)
     setChatSaveError(null)
-    const title = activeChatTitle ?? suggestedChatTitle(messages)
     try {
       const chat =
         activeChatId === null
@@ -330,9 +349,20 @@ export default function App() {
           : await updateSavedChat(activeChatId, title, messages)
       setActiveChatId(chat.chat_id)
       setActiveChatTitle(chat.title)
-      setSavedChats(await listSavedChats())
+      try {
+        setSavedChats(await listSavedChats())
+        setConversationListError(null)
+      } catch (error) {
+        setConversationListError(
+          error instanceof Error ? error.message : 'Could not refresh saved conversations.',
+        )
+      }
+      return true
     } catch (error) {
-      setChatSaveError(error instanceof Error ? error.message : 'Could not save this chat.')
+      setChatSaveError(
+        error instanceof Error ? error.message : 'Could not save this conversation.',
+      )
+      return false
     } finally {
       setChatSaveBusy(false)
     }
@@ -374,6 +404,14 @@ export default function App() {
             onClick={() => navigate(GROUPS)}
           >
             Smart Groups
+          </button>
+          <button
+            type="button"
+            className={`tab${view.kind === 'conversations' ? ' tab-active' : ''}`}
+            aria-current={view.kind === 'conversations' ? 'page' : undefined}
+            onClick={() => requireAuth(() => navigate(CONVERSATIONS))}
+          >
+            Conversations
           </button>
           {/* Only while locked. Once a code is accepted this disappears
               rather than turning into a "signed in" badge — there is no
@@ -420,6 +458,15 @@ export default function App() {
               openPaperInBackground(paperId, truncateTitle(title, 200))
             }
           />
+        ) : view.kind === 'conversations' ? (
+          <ConversationsView
+            conversations={savedChats}
+            loading={savedChatsLoading}
+            opening={chatSaveBusy}
+            error={conversationListError}
+            onClose={() => navigate(CHAT)}
+            onOpen={(chatId) => void openConversation(chatId)}
+          />
         ) : view.kind === 'corpus' ? (
           <CorpusView
             onClose={() => navigate(CHAT)}
@@ -437,13 +484,12 @@ export default function App() {
               openCitation(citation, entityIds, truncateTitle(title, 200))
             }
             onSmartGroupCreated={flashGroupsTab}
-            savedChats={savedChats}
-            activeChatId={activeChatId}
+            activeChatTitle={activeChatTitle}
             chatSaveBusy={chatSaveBusy}
             chatSaveError={chatSaveError}
             canSaveChat={unlocked && isChatSaveable(messages)}
-            onLoadChat={(chatId) => void loadChat(chatId)}
-            onSaveChat={() => void saveChat()}
+            onOpenSave={() => setChatSaveError(null)}
+            onSaveChat={saveChat}
           />
         )}
         <PaperExplorer

@@ -12,6 +12,7 @@ export type View =
   | { kind: 'chat' }
   | { kind: 'corpus' }
   | { kind: 'groups' }
+  | { kind: 'conversations' }
   | { kind: 'paper'; paperId: number }
 
 export interface PaperTab {
@@ -22,6 +23,7 @@ export interface PaperTab {
 export const CHAT: View = { kind: 'chat' }
 export const CORPUS: View = { kind: 'corpus' }
 export const GROUPS: View = { kind: 'groups' }
+export const CONVERSATIONS: View = { kind: 'conversations' }
 
 /** Tab labels are truncated to this many characters, then an ellipsis. */
 export const TAB_TITLE_MAX = 20
@@ -54,6 +56,8 @@ export function viewToPath(view: View): string {
       return '/my-corpus'
     case 'groups':
       return '/my-groups'
+    case 'conversations':
+      return '/conversations'
     case 'paper':
       return `/paper/${view.paperId}`
     default:
@@ -67,7 +71,8 @@ export function pathToView(path: string): View {
     if (Number.isInteger(id) && id > 0) return { kind: 'paper', paperId: id }
   }
   if (path === '/my-corpus') return CORPUS
-  return path === '/my-groups' ? GROUPS : CHAT
+  if (path === '/my-groups') return GROUPS
+  return path === '/conversations' ? CONVERSATIONS : CHAT
 }
 
 

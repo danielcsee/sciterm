@@ -33,7 +33,7 @@ Postgres must be running — `docker compose up -d postgres`.
 ## Subdirectories
 
 - `versions/` — the migration scripts themselves, applied in dependency order.
-  Current head: `c3a9e5f17b20_entity_prefix_indexes`.
+  Current head: `d7e4a1c92b66_saved_ai_chats`.
 
 ## Dependencies
 

@@ -49,8 +49,9 @@ and retries once through `/auth/refresh` on a 401.
 **`groups/`** — the Smart Groups page: saved entity groups, the type-ahead that
 builds them, and their `/groups` API client. See its [README](groups).
 
-**`chats/`** — the `/chats` client, snapshot↔`Message[]` conversion, and the
-save/load toolbar. Debug entity candidates are deliberately excluded.
+**`chats/`** — the `/chats` client, snapshot↔`Message[]` conversion, save
+modal, and Conversations tile view. Debug entity candidates are deliberately
+excluded.
 
 **`define/`** — "Define this term": a button beside highlighted chat or
 paper text, and the definition it fetches into the sidebar. See its

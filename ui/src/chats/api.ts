@@ -82,8 +82,8 @@ export function savedMessages(chat: SavedChat): Message[] {
 
 export function suggestedChatTitle(messages: readonly Message[]): string {
   const query = messages.find((message) => message.role === 'user')?.text.trim()
-  if (!query) return 'Saved chat'
-  return query.length <= 80 ? query : `${query.slice(0, 79).trimEnd()}…`
+  if (!query) return 'Saved conversation'
+  return query.slice(0, 20)
 }
 
 export function isChatSaveable(messages: readonly Message[]): boolean {
