@@ -1,5 +1,6 @@
 /**
- * Which view is on screen, which paper tabs are open, and how to get back.
+ * Which view is on screen, which paper and chat tabs are open, and how to get
+ * back.
  *
  * Closing a paper tab must return the user to whatever they were looking at
  * *before* that paper, which a single "current view" cannot answer. So this
@@ -14,11 +15,25 @@ export type View =
   | { kind: 'groups' }
   | { kind: 'conversations' }
   | { kind: 'paper'; paperId: number }
+  /** A saved conversation opened in its own tab; the homepage is `chat`. */
+  | { kind: 'savedChat'; chatId: number }
 
 export interface PaperTab {
+  kind: 'paper'
   paperId: number
   title: string
 }
+
+export interface ChatTab {
+  kind: 'savedChat'
+  chatId: number
+  title: string
+}
+
+export type OpenTab = PaperTab | ChatTab
+
+/** The views that live in a closable tab. */
+export type TabView = Extract<View, { kind: 'paper' | 'savedChat' }>
 
 export const CHAT: View = { kind: 'chat' }
 export const CORPUS: View = { kind: 'corpus' }
@@ -37,12 +52,35 @@ export const TAB_TITLE_MAX = 20
 export const TAB_FLASH_MS = 500
 
 export function sameView(a: View, b: View): boolean {
-  if (a.kind !== b.kind) return false
-  return a.kind !== 'paper' || a.paperId === (b as { paperId: number }).paperId
+  return viewKey(a) === viewKey(b)
 }
 
 export function viewKey(view: View): string {
-  return view.kind === 'paper' ? `paper:${view.paperId}` : view.kind
+  if (view.kind === 'paper') return `paper:${view.paperId}`
+  if (view.kind === 'savedChat') return `savedChat:${view.chatId}`
+  return view.kind
+}
+
+export function isTabView(view: View): view is TabView {
+  return view.kind === 'paper' || view.kind === 'savedChat'
+}
+
+/** The view a tab shows. */
+export function tabView(tab: OpenTab): TabView {
+  return tab.kind === 'paper'
+    ? { kind: 'paper', paperId: tab.paperId }
+    : { kind: 'savedChat', chatId: tab.chatId }
+}
+
+export function tabKey(tab: OpenTab): string {
+  return viewKey(tabView(tab))
+}
+
+/** The placeholder label for a tab whose real title has not arrived yet. */
+export function placeholderTab(view: TabView): OpenTab {
+  return view.kind === 'paper'
+    ? { kind: 'paper', paperId: view.paperId, title: `Paper ${view.paperId}` }
+    : { kind: 'savedChat', chatId: view.chatId, title: `Chat ${view.chatId}` }
 }
 
 export function truncateTitle(title: string | null, max = TAB_TITLE_MAX): string {
@@ -60,16 +98,24 @@ export function viewToPath(view: View): string {
       return '/conversations'
     case 'paper':
       return `/paper/${view.paperId}`
+    case 'savedChat':
+      return `/chat/${view.chatId}`
     default:
       return '/'
   }
 }
 
+function pathId(path: string, prefix: string): number | null {
+  if (!path.startsWith(prefix)) return null
+  const id = Number(path.slice(prefix.length))
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
 export function pathToView(path: string): View {
-  if (path.startsWith('/paper/')) {
-    const id = Number(path.slice('/paper/'.length))
-    if (Number.isInteger(id) && id > 0) return { kind: 'paper', paperId: id }
-  }
+  const paperId = pathId(path, '/paper/')
+  if (paperId !== null) return { kind: 'paper', paperId }
+  const chatId = pathId(path, '/chat/')
+  if (chatId !== null) return { kind: 'savedChat', chatId }
   if (path === '/my-corpus') return CORPUS
   if (path === '/my-groups') return GROUPS
   return path === '/conversations' ? CONVERSATIONS : CHAT
@@ -106,15 +152,24 @@ function forgetLegacyTabs(): void {
 const MAX_STORED_TABS = 50
 const MAX_STORED_TITLE = 300
 
-function isPaperTab(value: unknown): value is PaperTab {
-  if (typeof value !== 'object' || value === null) return false
+function isPositiveId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+}
+
+/**
+ * A stored tab, or null. Entries written before chat tabs existed carry no
+ * `kind` and are all papers.
+ */
+function parseStoredTab(value: unknown): OpenTab | null {
+  if (typeof value !== 'object' || value === null) return null
   const tab = value as Record<string, unknown>
-  return (
-    typeof tab.paperId === 'number' &&
-    Number.isInteger(tab.paperId) &&
-    tab.paperId > 0 &&
-    typeof tab.title === 'string'
-  )
+  if (typeof tab.title !== 'string') return null
+  const title = tab.title.slice(0, MAX_STORED_TITLE)
+  if (tab.kind === 'savedChat') {
+    return isPositiveId(tab.chatId) ? { kind: 'savedChat', chatId: tab.chatId, title } : null
+  }
+  if (tab.kind !== undefined && tab.kind !== 'paper') return null
+  return isPositiveId(tab.paperId) ? { kind: 'paper', paperId: tab.paperId, title } : null
 }
 
 /**
@@ -125,19 +180,20 @@ function isPaperTab(value: unknown): value is PaperTab {
  * change to this shape or have been edited by hand — none of which should stop
  * the app from starting.
  */
-export function loadTabs(): PaperTab[] {
+export function loadTabs(): OpenTab[] {
   forgetLegacyTabs()
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    const seen = new Set<number>()
-    const tabs: PaperTab[] = []
+    const seen = new Set<string>()
+    const tabs: OpenTab[] = []
     for (const value of parsed) {
-      if (!isPaperTab(value) || seen.has(value.paperId)) continue
-      seen.add(value.paperId)
-      tabs.push({ paperId: value.paperId, title: value.title.slice(0, MAX_STORED_TITLE) })
+      const tab = parseStoredTab(value)
+      if (tab === null || seen.has(tabKey(tab))) continue
+      seen.add(tabKey(tab))
+      tabs.push(tab)
       if (tabs.length === MAX_STORED_TABS) break
     }
     return tabs
@@ -146,15 +202,14 @@ export function loadTabs(): PaperTab[] {
   }
 }
 
-export function saveTabs(tabs: PaperTab[]): void {
+export function saveTabs(tabs: OpenTab[]): void {
   try {
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(
-        tabs.slice(0, MAX_STORED_TABS).map((tab) => ({
-          paperId: tab.paperId,
-          title: tab.title.slice(0, MAX_STORED_TITLE),
-        })),
+        tabs
+          .slice(0, MAX_STORED_TABS)
+          .map((tab) => ({ ...tab, title: tab.title.slice(0, MAX_STORED_TITLE) })),
       ),
     )
   } catch {

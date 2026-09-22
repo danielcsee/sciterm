@@ -184,7 +184,8 @@ with an optional 'x' (`onRemove`) that carries the hover affordance. Used by
 
 ## `PaperTabs.tsx`
 
-The **scrolling** half of the tab bar, separate so the My Corpus tab stays put.
+The **scrolling** half of the tab bar — open papers and saved chats — separate
+so the My Corpus tab stays put.
 
 ## `PaperCard.tsx`
 
