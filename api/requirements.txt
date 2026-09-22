@@ -17,7 +17,13 @@ sentence-transformers>=3.0,<6
 numpy>=1.26,<3
 scipy>=1.11,<2
 # Query phrase extraction. Pipeline wheels are separate from spaCy itself.
-spacy==3.8.2
+# 3.8.7, and the ceiling is as load-bearing as the floor. Below 3.8.5 there is
+# no linux aarch64 wheel, so the ARM64 image build compiles spaCy from source
+# and dies on a slim image with no compiler. Above 3.8.7 there is no macOS
+# cp39 wheel, and `scripts/dev.sh` builds .venv from the system python3, which
+# is 3.9 on macOS. 3.8.5-3.8.7 is the overlap; the same window applies to
+# thinc, which pip resolves per platform (8.3.6 locally, 8.3.13 in the image).
+spacy==3.8.7
 en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 # OpenAI: routes chat queries to a tool and resolves entity candidates.
 openai>=2.48,<3
