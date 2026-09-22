@@ -92,7 +92,9 @@ class AiChatMessage(Base):
 
     __table_args__ = (
         CheckConstraint("role IN ('user', 'assistant')", name="ck_ai_chat_messages_role"),
-        CheckConstraint("status IN ('done', 'error')", name="ck_ai_chat_messages_status"),
+        CheckConstraint(
+            "status IN ('pending', 'done', 'error')", name="ck_ai_chat_messages_status"
+        ),
         CheckConstraint("ordinal >= 0", name="ck_ai_chat_messages_ordinal"),
         UniqueConstraint("chat_id", "ordinal", name="uq_ai_chat_messages_chat_ordinal"),
         UniqueConstraint("chat_id", "id", name="uq_ai_chat_messages_chat_id"),

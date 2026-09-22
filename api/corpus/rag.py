@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
+from typing import Protocol
 
 from pydantic import BaseModel
 
@@ -48,6 +49,13 @@ from api.paper_search import search_papers
 log = logging.getLogger(__name__)
 
 
+class RagArtifactSink(Protocol):
+    def save_result(self, result: RagSearchResponse) -> None: ...
+    def save_answer(self, event: AnswerDoneEvent) -> None: ...
+    def save_entities(self, event: AnswerEntitiesEvent) -> None: ...
+    def fail(self, error: str) -> None: ...
+
+
 def match_query_entities(text: str, fragments: list[QueryFragment]) -> RagSearchResponse:
     """Raw and filtered entity candidates for the query's fragments.
 
@@ -61,22 +69,33 @@ def match_query_entities(text: str, fragments: list[QueryFragment]) -> RagSearch
     )
 
 
-def rag_events(result: RagSearchResponse, fragments: list[QueryFragment]) -> Iterator[str]:
+def rag_events(
+    result: RagSearchResponse,
+    fragments: list[QueryFragment],
+    sink: RagArtifactSink | None = None,
+) -> Iterator[str]:
     """Every stage's line, in order, each as soon as it is ready.
 
     Starlette iterates a sync generator in its threadpool, so the blocking
     database and OpenAI calls never stall the event loop.
     """
-    yield ndjson_line(
-        EntityMatchesEvent(
-            entity_matches=result.entity_matches,
-            filtered_entity_matches=result.filtered_entity_matches,
+    try:
+        yield ndjson_line(
+            EntityMatchesEvent(
+                entity_matches=result.entity_matches,
+                filtered_entity_matches=result.filtered_entity_matches,
+            )
         )
-    )
-    _answer_query(result, fragments)
-    yield ndjson_line(RagResultEvent(result=result))
-    if result.analysis is not None:
-        yield from _answer_events(result, result.analysis)
+        _answer_query(result, fragments)
+        if sink is not None:
+            sink.save_result(result)
+        yield ndjson_line(RagResultEvent(result=result))
+        if result.analysis is not None:
+            yield from _answer_events(result, result.analysis, sink)
+    except Exception as exc:
+        if sink is not None:
+            sink.fail(str(exc))
+        raise
 
 
 def entity_candidates(fragments: list[QueryFragment]) -> list[EntityMatchGroup]:
@@ -130,7 +149,11 @@ def _answer_query(result: RagSearchResponse, fragments: list[QueryFragment]) -> 
     )
 
 
-def _answer_events(result: RagSearchResponse, analysis: PaperAnalysisResult) -> Iterator[str]:
+def _answer_events(
+    result: RagSearchResponse,
+    analysis: PaperAnalysisResult,
+    sink: RagArtifactSink | None = None,
+) -> Iterator[str]:
     """The answer as it is written, then the entities it names."""
     client = get_llm_client()
     pieces = stream_answer(
@@ -142,11 +165,17 @@ def _answer_events(result: RagSearchResponse, analysis: PaperAnalysisResult) -> 
     )
     for piece in pieces:
         yield ndjson_line(AnswerDeltaEvent(text=piece))
-    yield ndjson_line(
-        AnswerDoneEvent(answer=analysis.answer, model=analysis.model, error=analysis.error)
+    done = AnswerDoneEvent(
+        answer=analysis.answer, model=analysis.model, error=analysis.error
     )
+    if sink is not None:
+        sink.save_answer(done)
+    yield ndjson_line(done)
     if client is not None and analysis.answer is not None:
-        yield ndjson_line(_answer_entities(client, analysis.answer))
+        entities = _answer_entities(client, analysis.answer)
+        if sink is not None:
+            sink.save_entities(entities)
+        yield ndjson_line(entities)
 
 
 def _answer_entities(client: LlmClient, answer: str) -> AnswerEntitiesEvent:

@@ -29,7 +29,8 @@ datastores and applies migrations.
 | [`paper_search/`](paper_search) | Chooses chat's papers by entity coverage or full-text |
 | [`paper_analysis/`](paper_analysis) | Cited answers for `paper_analysis` from the best paragraphs |
 | [`define_term/`](define_term) | Plain-language definitions of highlighted phrases (`/define`) |
-| [`chats/`](chats) | Owner-scoped saved AI chats, citations, and identified entity pills (`/chats`) |
+| [`annotations/`](annotations) | Owner-scoped definitions anchored to chats or papers (`/annotations`) |
+| [`chats/`](chats) | Incrementally persisted AI chats and generated artifacts (`/chats`) |
 
 ## Dependencies
 

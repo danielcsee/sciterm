@@ -27,8 +27,8 @@ selection, scroll and resize; never mid-drag.
 cancelled so clicking it keeps the highlight.
 
 **`useDefinition.ts`** / **`api.ts`** — the definitions on screen, newest
-first, and the typed call. Requests resolve independently without removing
-earlier definitions.
+first, the typed define call, and owner-scoped annotation reads. Requests carry
+their source selector, and the returned definition is already durable.
 
 **`DefinitionPanel.tsx`** — a vertically scrollable list of phrases and their
 spinner, definition or error. A new definition scrolls the list back to its
