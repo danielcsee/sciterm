@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { SavedChatSummary } from './api'
 import ConversationTile from './ConversationTile'
+import DeleteChatModal from './DeleteChatModal'
 
 interface Props {
   conversations: SavedChatSummary[]
@@ -8,6 +10,8 @@ interface Props {
   error: string | null
   onClose: () => void
   onOpen: (conversationId: number) => void
+  /** Resolves once the chat is deleted; rejects with the server's reason. */
+  onDelete: (conversationId: number) => Promise<void>
 }
 
 /** Lists every saved conversation using the same tile layout as Smart Groups. */
@@ -18,7 +22,10 @@ export default function ConversationsView({
   error,
   onClose,
   onOpen,
+  onDelete,
 }: Props) {
+  const [confirming, setConfirming] = useState<SavedChatSummary | null>(null)
+
   return (
     <section className="conversations" aria-label="Conversations">
       <header className="groups-header">
@@ -52,11 +59,23 @@ export default function ConversationsView({
                 conversation={conversation}
                 disabled={opening}
                 onOpen={() => onOpen(conversation.chat_id)}
+                onDelete={() => setConfirming(conversation)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {confirming && (
+        <DeleteChatModal
+          title={confirming.title}
+          onConfirm={async () => {
+            await onDelete(confirming.chat_id)
+            setConfirming(null)
+          }}
+          onClose={() => setConfirming(null)}
+        />
+      )}
     </section>
   )
 }

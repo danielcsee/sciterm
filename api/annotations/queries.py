@@ -61,3 +61,11 @@ WHERE a.ai_chat_id IS NOT DISTINCT FROM CAST(:chat_id AS bigint)
   AND a.owner_free_access_code_id IS NOT DISTINCT FROM CAST(:owner_code_id AS bigint)
 ORDER BY a.position DESC
 """
+
+DELETE_ANNOTATION_SQL = """
+DELETE FROM user_annotations
+WHERE id = CAST(:id AS uuid)
+  AND owner_user_id IS NOT DISTINCT FROM CAST(:owner_user_id AS bigint)
+  AND owner_free_access_code_id IS NOT DISTINCT FROM CAST(:owner_code_id AS bigint)
+RETURNING id
+"""

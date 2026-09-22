@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { ApiError } from '../api'
-import { defineTerm } from './api'
+import { defineTerm, deleteAnnotation } from './api'
 import type { AnnotationDraft, UserAnnotation } from './types'
 
 /** Every entry keeps its annotation, whose selector places its underline. */
@@ -13,16 +13,27 @@ export type Definition =
 const UNFINISHED_DEFINITION = 'The definition did not finish. Highlight it again to retry.'
 
 export interface DefinitionState {
+  /** The visible definitions: hidden ones are left out until a reload. */
   definitions: Definition[]
   request: (annotation: AnnotationDraft) => void
   hydrate: (annotations: UserAnnotation[]) => void
   clear: () => void
+  /** Hide for this session only; the saved annotation is untouched. */
+  hide: (id: string) => void
+  /** Delete the saved annotation, then drop it. Rejects if the server refused. */
+  remove: (id: string) => Promise<void>
 }
 
 /** Definitions shown newest first in the sidebar. */
 export function useDefinition(): DefinitionState {
-  const [definitions, setDefinitions] = useState<Definition[]>([])
+  const [allDefinitions, setDefinitions] = useState<Definition[]>([])
+  // Kept across hydrates, so reopening the same paper does not bring them back.
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set())
   const controllersRef = useRef(new Set<AbortController>())
+  const definitions = useMemo(
+    () => allDefinitions.filter((definition) => !hidden.has(definition.id)),
+    [allDefinitions, hidden],
+  )
 
   const clear = useCallback(() => {
     abortAll(controllersRef.current)
@@ -48,12 +59,21 @@ export function useDefinition(): DefinitionState {
     setDefinitions(annotations.map(savedDefinition))
   }, [])
 
+  const hide = useCallback((id: string) => {
+    setHidden((current) => new Set(current).add(id))
+  }, [])
+
+  const remove = useCallback(async (id: string) => {
+    await deleteAnnotation(id)
+    setDefinitions((current) => current.filter((definition) => definition.id !== id))
+  }, [])
+
   useEffect(() => {
     const controllers = controllersRef.current
     return () => abortAll(controllers)
   }, [])
 
-  return { definitions, request, hydrate, clear }
+  return { definitions, request, hydrate, clear, hide, remove }
 }
 
 function savedDefinition(annotation: UserAnnotation): Definition {

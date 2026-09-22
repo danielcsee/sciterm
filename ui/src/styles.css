@@ -6,6 +6,9 @@
   --text-dim: #6b6963;
   --accent: #b4501f;
   --accent-soft: #f6ece6;
+  /* Destructive actions only: permanent deletes. */
+  --danger: #c2332b;
+  --danger-soft: #fbe9e7;
   /* Highlighter yellow. Deliberately not the accent: an orange highlight over
      orange-accented UI reads as another control rather than as marked text. */
   --highlight: #fdf06a;
@@ -30,6 +33,8 @@
     --text-dim: #9b9791;
     --accent: #e0774a;
     --accent-soft: #2e2320;
+    --danger: #ef6b61;
+    --danger-soft: #3a2220;
     /* Slightly deeper on dark so it marks the text rather than glaring, and
        the ink stays dark — that is what a highlighter looks like. */
     --highlight: #e7d152;
@@ -590,22 +595,6 @@ body {
 }
 
 .composer-send:disabled { opacity: 0.4; cursor: default; }
-
-.composer-save {
-  padding: 11px 15px;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--accent);
-  font: inherit;
-  font-weight: 560;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-}
-
-.composer-save:hover:not(:disabled) { background: var(--accent-soft); }
-.composer-save:disabled { opacity: 0.4; cursor: default; }
 
 /* ---------- my corpus ---------- */
 .corpus {
@@ -1463,6 +1452,8 @@ body {
 
 .code-submit:hover:not(:disabled) { filter: brightness(1.08); }
 
+.code-danger { border-color: var(--danger); background: var(--danger); }
+
 .code-cancel:disabled,
 .code-submit:disabled { opacity: 0.55; cursor: default; }
 
@@ -1735,35 +1726,55 @@ body {
 }
 
 .conversation-tile {
+  position: relative;
   width: 192px;
   min-height: 104px;
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.conversation-tile:hover:not(.conversation-tile-disabled),
+.conversation-tile:has(.conversation-tile-body:focus-visible) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.conversation-tile-disabled { opacity: 0.55; }
+
+/* Fills the tile, so a click anywhere but the bin opens the conversation. */
+.conversation-tile-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
   padding: 14px 12px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+  border: none;
+  border-radius: inherit;
+  background: none;
   color: var(--text);
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
 }
 
-.conversation-tile:hover:not(:disabled),
-.conversation-tile:focus-visible {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  outline: none;
-}
+.conversation-tile-body:focus-visible { outline: none; }
 
-.conversation-tile:disabled { opacity: 0.55; cursor: wait; }
+.conversation-tile-body:disabled { cursor: wait; }
+
+.conversation-tile-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
 
 .conversation-tile-name {
   width: 100%;
+  padding-right: 24px;
   font-size: 14.5px;
   font-weight: 600;
   line-height: 1.4;
@@ -2075,6 +2086,51 @@ body {
   gap: 8px;
   margin-bottom: 8px;
 }
+
+.definition-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.definition-hide {
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.definition-hide:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Shared by every permanent delete: a small red bin. */
+.icon-delete {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--danger);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.icon-delete:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); }
+
+.icon-delete:disabled { opacity: 0.4; cursor: default; }
+
+.definition-hide:focus-visible,
+.icon-delete:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .definition-phrase {
   margin: 0;

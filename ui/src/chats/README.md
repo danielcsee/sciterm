@@ -8,7 +8,9 @@ rendering model. Generated results, citations, answers, entity pills and
 annotations are persisted by the server rather than uploaded from this client.
 
 `ConversationsView.tsx` and `ConversationTile.tsx` render saved conversations
-in a Smart Groups-style tile grid. Opening a tile restores its snapshot into
+in a Smart Groups-style tile grid. Each tile's red bin opens
+`DeleteChatModal.tsx`, which asks before permanently deleting the chat; its
+annotations go with it. Opening a tile restores its snapshot into
 the same main chat pane. Chats are named automatically from the first 20
 characters of the first message. The root `App` remains responsible for state,
 navigation, and network actions.
