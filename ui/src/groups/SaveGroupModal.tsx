@@ -1,11 +1,16 @@
 import { useState } from 'react'
-import { ApiError } from '../api'
+import { ApiError, type EntityLabelSource } from '../api'
 import EntityChip from '../components/EntityChip'
-import { createGroup, type EntityGroup, type GroupEntity } from './api'
+import { createGroup, type EntityGroup } from './api'
 import { submitOnEnter, useModalDialog } from './useModalDialog'
 
+/** The fields needed to name and persist an entity in a new group. */
+export interface SaveGroupEntity extends EntityLabelSource {
+  entity_id: number
+}
+
 interface Props {
-  entities: GroupEntity[]
+  entities: SaveGroupEntity[]
   onSaved: (group: EntityGroup) => void
   onClose: () => void
 }
@@ -40,7 +45,7 @@ export default function SaveGroupModal({ entities, onSaved, onClose }: Props) {
         }}
       >
         <h2 className="code-title" id="save-group-title">
-          Save group
+          Create Smart Group
         </h2>
 
         <label className="code-label" htmlFor="save-group-name">

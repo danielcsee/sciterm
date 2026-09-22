@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import type { AnswerEntity, Citation } from '../api'
 import { markPhrases } from '../entityPhrases'
+import SaveGroupModal, { type SaveGroupEntity } from '../groups/SaveGroupModal'
 import AnswerEntityPills from './AnswerEntityPills'
 import CitationMarker from './CitationMarker'
 
@@ -13,6 +14,7 @@ interface Props {
    */
   entities: AnswerEntity[]
   onOpenCitation: (citation: Citation) => void
+  onSmartGroupCreated: () => void
   /** Drawn after the last word, e.g. a spinner while more is coming. */
   trailing?: ReactNode
 }
@@ -43,6 +45,23 @@ export function splitCitations(answer: string, known: ReadonlySet<number>): Answ
   return parts
 }
 
+/** Answer entities use their named phrases as the modal's display fallback. */
+function toSaveGroupEntity(entity: AnswerEntity): SaveGroupEntity {
+  return {
+    entity_id: entity.entity_id,
+    identifier: entity.identifier,
+    name: entity.name,
+    names: entity.phrases,
+  }
+}
+
+function toggledIds(selected: ReadonlySet<number>, entityId: number): ReadonlySet<number> {
+  const next = new Set(selected)
+  if (next.has(entityId)) next.delete(entityId)
+  else next.add(entityId)
+  return next
+}
+
 /**
  * The generated answer, with each `[n]` a live citation marker, followed by a
  * pill per recognised entity. Only the hovered pill's phrases are underlined.
@@ -52,12 +71,18 @@ export default function AnalysisAnswer({
   citations,
   entities,
   onOpenCitation,
+  onSmartGroupCreated,
   trailing,
 }: Props) {
   const byNumber = new Map(citations.map((citation) => [citation.number, citation]))
   const parts = splitCitations(answer, new Set(byNumber.keys()))
   const [activeId, setActiveId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(new Set())
+  const [savingGroup, setSavingGroup] = useState(false)
   const active = entities.find((entity) => entity.entity_id === activeId) ?? null
+  const selectedEntities = entities
+    .filter((entity) => selectedIds.has(entity.entity_id))
+    .map(toSaveGroupEntity)
 
   return (
     <>
@@ -77,7 +102,36 @@ export default function AnalysisAnswer({
         )}
         {trailing}
       </p>
-      <AnswerEntityPills entities={entities} onActivate={setActiveId} />
+      {entities.length > 0 && (
+        <div className="answer-entity-actions">
+          <AnswerEntityPills
+            entities={entities}
+            selectedIds={selectedIds}
+            onActivate={setActiveId}
+            onToggle={(entityId) => setSelectedIds((prev) => toggledIds(prev, entityId))}
+          />
+          {selectedIds.size > 0 && (
+            <button
+              type="button"
+              className="group-button group-button-primary answer-create-group"
+              onClick={() => setSavingGroup(true)}
+            >
+              Create Smart Group
+            </button>
+          )}
+        </div>
+      )}
+      {savingGroup && (
+        <SaveGroupModal
+          entities={selectedEntities}
+          onSaved={() => {
+            setSavingGroup(false)
+            setSelectedIds(new Set())
+            onSmartGroupCreated()
+          }}
+          onClose={() => setSavingGroup(false)}
+        />
+      )}
     </>
   )
 }

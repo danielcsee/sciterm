@@ -23,9 +23,16 @@ interface Props {
   onOpenPaper: (paperId: number, title: string | null) => void
   /** Open a cited paper at the paragraph, with `entityIds` highlighted. */
   onOpenCitation: (citation: Citation, entityIds: number[], title: string | null) => void
+  onSmartGroupCreated: () => void
 }
 
-export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitation }: Props) {
+export default function ChatWindow({
+  messages,
+  onSend,
+  onOpenPaper,
+  onOpenCitation,
+  onSmartGroupCreated,
+}: Props) {
   // Asking a question runs retrieval on the server, so the composer is a
   // gate. Locked it stays readable and clickable — clicking is what opens the
   // modal, which a `disabled` control could never do: disabled elements fire
@@ -145,6 +152,7 @@ export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitati
                       isLatest={index === messages.length - 1}
                       onOpenPaper={onOpenPaper}
                       onOpenCitation={(citation) => openCitation(message, citation)}
+                      onSmartGroupCreated={onSmartGroupCreated}
                     />
                   ) : (
                     <>

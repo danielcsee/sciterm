@@ -18,6 +18,9 @@ order; ✕ returns. `PaperSubgroupList.tsx` frames subgroups.
 as removable `EntityChip`s beneath. Save is disabled while empty and opens
 `SaveGroupModal` for the name.
 
+**`SaveGroupModal.tsx`** — the shared naming and save dialog, used by the group
+builder, edited group results, and selected entity pills in an AI answer.
+
 **`EditGroupModal.tsx`** — rename, add/remove entities, or delete (the button
 asks once more in place). Nothing is written until Save.
 

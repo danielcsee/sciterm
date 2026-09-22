@@ -14,7 +14,8 @@ and imports `styles.css`.
 Closing a paper tab pops that stack, skipping entries whose tab has since
 closed: that is how "go back to where I was" works. `handleSend` reads the
 `/corpus/rag_search` stream, folding each line into the reply with
-`ragAnswer.ts`.
+`ragAnswer.ts`. A Smart Group saved from an answer briefly flashes the fixed
+Smart Groups tab in the header.
 
 **`ragAnswer.ts`** — pure message updates for that stream: the candidates, the
 result, each answer piece, the finish, the answer's entities, and a connection
