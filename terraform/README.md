@@ -34,6 +34,10 @@ cd .. && terraform init
 
 # The image destination must exist before the first GitHub build can push.
 terraform apply -target=aws_ecr_repository.app
+
+# The OpenAI key is looked up, not created: plan fails until it exists.
+aws secretsmanager create-secret --name sciterm/openai-api-key \
+  --secret-string "$(tr -d '\n' < ../openai_key_do_not_commit.txt)"
 ```
 
 Set `domain_name` to the full hostname (for example, `app.example.com`) and
@@ -92,6 +96,12 @@ is why the bucket is encrypted, versioned and blocked from public access. The
 signing key is generated ephemerally and passed to Secrets Manager through a
 write-only argument. Increment `jwt_secret_version` to rotate it and register a
 new API task definition revision. Rotation invalidates all existing JWTs.
+
+**The OpenAI key is in neither state nor GitHub.** It is created by hand and
+read through a data source, so Terraform holds only its ARN. A write-only
+argument would keep it out of state too, but CI would then have to supply it
+on every apply. Only the API task receives it. Rotate it with
+`aws secretsmanager put-secret-value`, then force a new API deployment.
 
 **Terraform defines services; GitHub releases them.** Terraform owns each ECS
 service's infrastructure but ignores its live task-definition revision and
