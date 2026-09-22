@@ -21,20 +21,25 @@ import {
   type Highlight,
 } from './define'
 import { GroupsView } from './groups'
-import { ConversationsView } from './chats'
+import { ConversationsView, useChatSessions, type SessionKey } from './chats'
 import {
   CHAT,
   CONVERSATIONS,
   CORPUS,
   GROUPS,
+  isTabView,
   loadTabs,
   pathToView,
+  placeholderTab,
   sameView,
   saveTabs,
   TAB_FLASH_MS,
+  tabKey,
   truncateTitle,
+  viewKey,
   viewToPath,
-  type PaperTab,
+  type OpenTab,
+  type TabView,
   type View,
 } from './navigation'
 import type { Message, PaperFocus } from './types'
@@ -42,8 +47,6 @@ import {
   appendChatTurn,
   deleteSavedChat,
   listSavedChats,
-  loadSavedChat,
-  savedMessages,
   startChat,
   type SavedChatSummary,
 } from './chats/api'
@@ -100,22 +103,24 @@ function annotationFromHighlight(
 
 export default function App() {
   const { unlocked, promptForCode, requireAuth } = useAuth()
-  const [messages, setMessages] = useState<Message[]>([])
+  const sessions = useChatSessions()
   const [savedChats, setSavedChats] = useState<SavedChatSummary[]>([])
-  const [activeChatId, setActiveChatId] = useState<number | null>(null)
+  // The chat the homepage is showing, once its first message has created one.
+  const [homeChatId, setHomeChatId] = useState<number | null>(null)
   const [chatOpening, setChatOpening] = useState(false)
   const [savedChatsLoading, setSavedChatsLoading] = useState(false)
   const [conversationListError, setConversationListError] = useState<string | null>(null)
-  const [tabs, setTabs] = useState<PaperTab[]>(() => {
+  const [tabs, setTabs] = useState<OpenTab[]>(() => {
     // Tabs survive a reload; the URL still decides which one is showing. A
-    // shared /paper/12 link opens that tab too, with a placeholder label until
-    // PaperView reports the real title.
+    // shared /paper/12 or /chat/3 link opens that tab too, with a placeholder
+    // label until the paper or chat reports its real title.
     const stored = loadTabs()
     const initial = pathToView(window.location.pathname)
-    if (initial.kind !== 'paper') return stored
-    return stored.some((tab) => tab.paperId === initial.paperId)
+    if (!isTabView(initial)) return stored
+    const key = viewKey(initial)
+    return stored.some((tab) => tabKey(tab) === key)
       ? stored
-      : [...stored, { paperId: initial.paperId, title: `Paper ${initial.paperId}` }]
+      : [...stored, placeholderTab(initial)]
   })
 
   // Tabs briefly showing the selected styling after being opened in the
@@ -141,6 +146,9 @@ export default function App() {
     [definition.definitions],
   )
   useAnnotationUnderlines(annotations)
+  // The conversation on screen, if any: a chat tab's, or the homepage's.
+  const visibleChatId =
+    view.kind === 'savedChat' ? view.chatId : view.kind === 'chat' ? homeChatId : null
 
   useEffect(() => {
     if (!unlocked) {
@@ -171,8 +179,8 @@ export default function App() {
     if (!unlocked) return
     const source = view.kind === 'paper'
       ? { paperId: view.paperId }
-      : view.kind === 'chat' && activeChatId !== null
-        ? { chatId: activeChatId }
+      : visibleChatId !== null
+        ? { chatId: visibleChatId }
         : null
     if (source === null) return
     const controller = new AbortController()
@@ -180,10 +188,10 @@ export default function App() {
       .then(definition.hydrate)
       .catch(() => undefined)
     return () => controller.abort()
-  }, [unlocked, view, activeChatId, definition.hydrate])
+  }, [unlocked, view, visibleChatId, definition.hydrate])
 
   useEffect(() => {
-    saveTabs(tabs.filter((tab) => !missing.has(tab.paperId)))
+    saveTabs(tabs.filter((tab) => tab.kind !== 'paper' || !missing.has(tab.paperId)))
   }, [tabs, missing])
 
   // Pending flashes must not fire into an unmounted tree.
@@ -250,16 +258,23 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  function addTab(paperId: number, title: string | null) {
-    setTabs((prev) =>
-      prev.some((tab) => tab.paperId === paperId)
-        ? prev
-        : [...prev, { paperId, title: title ?? `Paper ${paperId}` }],
-    )
+  function addTab(tab: OpenTab) {
+    const key = tabKey(tab)
+    setTabs((prev) => (prev.some((open) => tabKey(open) === key) ? prev : [...prev, tab]))
   }
 
+  function addPaperTab(paperId: number, title: string | null) {
+    addTab({ kind: 'paper', paperId, title: title ?? `Paper ${paperId}` })
+  }
+
+  /** Give an open tab its real title once the paper or chat reports one. */
+  const retitleTab = useCallback((view: TabView, title: string) => {
+    const key = viewKey(view)
+    setTabs((prev) => prev.map((tab) => (tabKey(tab) === key ? { ...tab, title } : tab)))
+  }, [])
+
   function openPaper(paperId: number, title: string | null) {
-    addTab(paperId, title)
+    addPaperTab(paperId, title)
     navigate({ kind: 'paper', paperId })
   }
 
@@ -281,7 +296,7 @@ export default function App() {
    * visit stack and the URL are untouched and the reader keeps their place.
    */
   function openPaperInBackground(paperId: number, title: string | null) {
-    addTab(paperId, title)
+    addPaperTab(paperId, title)
     flashTab(paperId)
   }
 
@@ -290,28 +305,26 @@ export default function App() {
    * search box, so a references panel covering it is closed first.
    */
   function defineHighlight(highlight: Highlight) {
-    const annotation = annotationFromHighlight(highlight, activeChatId)
+    const annotation = annotationFromHighlight(highlight, visibleChatId)
     if (!annotation) return
     setReferencesFor(null)
     definition.request(annotation)
   }
 
-  function closePaper(paperId: number) {
-    const remaining = tabs.filter((tab) => tab.paperId !== paperId)
+  function closeTab(closing: TabView) {
+    const remaining = tabs.filter((tab) => tabKey(tab) !== viewKey(closing))
     setTabs(remaining)
 
     // Closing a background tab must not move the user.
-    if (view.kind !== 'paper' || view.paperId !== paperId) {
-      historyRef.current = historyRef.current.filter(
-        (entry) => entry.kind !== 'paper' || entry.paperId !== paperId,
-      )
+    if (!sameView(view, closing)) {
+      historyRef.current = historyRef.current.filter((entry) => !sameView(entry, closing))
       return
     }
 
     // Fall back to the most recent view that still exists.
-    const open = new Set(remaining.map((tab) => tab.paperId))
+    const open = new Set(remaining.map(tabKey))
     const stack = historyRef.current.filter(
-      (entry) => entry.kind !== 'paper' || open.has(entry.paperId),
+      (entry) => !isTabView(entry) || open.has(viewKey(entry)),
     )
     const previous = stack.pop() ?? CHAT
     historyRef.current = stack
@@ -324,15 +337,25 @@ export default function App() {
     setMissing((prev) => (prev.has(paperId) ? prev : new Set(prev).add(paperId)))
   }, [])
 
-  const handleLoaded = useCallback((paper: PaperDetail) => {
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.paperId === paper.paper_id && paper.title
-          ? { ...tab, title: paper.title }
-          : tab,
-      ),
-    )
-  }, [])
+  const handleLoaded = useCallback(
+    (paper: PaperDetail) => {
+      if (paper.title) retitleTab({ kind: 'paper', paperId: paper.paper_id }, paper.title)
+    },
+    [retitleTab],
+  )
+
+  // A chat tab restored from storage or a shared /chat/3 link has no messages
+  // yet. A failed load is recorded rather than retried on every render;
+  // reopening the chat from Conversations tries again.
+  const shownChatId = view.kind === 'savedChat' ? view.chatId : null
+  useEffect(() => {
+    if (!unlocked || shownChatId === null) return
+    if (sessions.messagesFor(shownChatId) || sessions.errorFor(shownChatId)) return
+    sessions
+      .load(shownChatId)
+      .then((chat) => retitleTab({ kind: 'savedChat', chatId: chat.chat_id }, chat.title))
+      .catch(() => undefined)
+  }, [unlocked, shownChatId, sessions, retitleTab])
 
   /**
    * Ask the corpus. A `paper_analysis` query shows its citations first, then
@@ -343,19 +366,19 @@ export default function App() {
    * filled in, so the question and a spinner appear at once instead of the
    * user staring at their own message alone.
    */
-  async function handleSend(text: string) {
+  async function handleSend(text: string, tabChatId: number | null) {
     const userId = crypto.randomUUID()
     const answerId = crypto.randomUUID()
-    setMessages((prev) => [
-      ...prev,
+    // A chat tab always has its id; the homepage has one after its first turn.
+    const existingChatId = tabChatId ?? homeChatId
+    let key: SessionKey = existingChatId ?? 'draft'
+    sessions.append(key, [
       { id: userId, role: 'user', text },
       { id: answerId, role: 'assistant', text: 'Searching your corpus…', status: 'pending' },
     ])
 
     const update = (change: (message: Message) => Message) =>
-      setMessages((prev) =>
-        prev.map((message) => (message.id === answerId ? change(message) : message)),
-      )
+      sessions.update(key, answerId, change)
 
     let response: RagSearchResponse | null = null
     try {
@@ -364,10 +387,14 @@ export default function App() {
         assistant_message_id: answerId,
         content: text,
       }
-      const chat = activeChatId === null
+      const chat = existingChatId === null
         ? await startChat(turn)
-        : await appendChatTurn(activeChatId, turn)
-      setActiveChatId(chat.chat_id)
+        : await appendChatTurn(existingChatId, turn)
+      if (existingChatId === null) {
+        sessions.adoptDraft(chat.chat_id)
+        setHomeChatId(chat.chat_id)
+        key = chat.chat_id
+      }
       void listSavedChats().then(setSavedChats).catch(() => undefined)
       const chatId = chat.chat_id
       for await (const event of streamRagSearch(text, chatId, answerId)) {
@@ -385,14 +412,17 @@ export default function App() {
     update((message) => endRagStream(message, finished))
   }
 
+  /**
+   * Fetch a saved chat unless it is already open — reloading one would
+   * clobber an answer still streaming into it. Reports failure in the list.
+   */
   async function loadChat(chatId: number): Promise<boolean> {
+    if (sessions.messagesFor(chatId)) return true
     setChatOpening(true)
     setConversationListError(null)
     try {
-      const chat = await loadSavedChat(chatId)
-      setMessages(savedMessages(chat))
+      const chat = await sessions.load(chatId)
       definition.hydrate(chat.annotations)
-      setActiveChatId(chat.chat_id)
       return true
     } catch (error) {
       setConversationListError(
@@ -404,19 +434,24 @@ export default function App() {
     }
   }
 
+  /** Open a saved chat in its own tab, as papers are, at /chat/<id>. */
   async function openConversation(chatId: number) {
-    if (await loadChat(chatId)) navigate(CHAT)
+    if (!(await loadChat(chatId))) return
+    const title = savedChats.find((chat) => chat.chat_id === chatId)?.title
+    addTab({ kind: 'savedChat', chatId, title: title ?? `Chat ${chatId}` })
+    navigate({ kind: 'savedChat', chatId })
   }
 
   async function deleteConversation(chatId: number) {
     await deleteSavedChat(chatId)
     setSavedChats((chats) => chats.filter((chat) => chat.chat_id !== chatId))
-    // The open chat is gone, so the next message must start a new one.
-    if (chatId === activeChatId) {
-      setActiveChatId(null)
-      setMessages([])
-      definition.clear()
+    sessions.forget(chatId)
+    if (tabs.some((tab) => tab.kind === 'savedChat' && tab.chatId === chatId)) {
+      closeTab({ kind: 'savedChat', chatId })
     }
+    // The homepage's chat is gone, so its next message must start a new one.
+    if (chatId === homeChatId) setHomeChatId(null)
+    if (chatId === visibleChatId) definition.clear()
   }
 
   return (
@@ -477,8 +512,8 @@ export default function App() {
           tabs={tabs}
           active={view}
           flashing={flashing}
-          onSelect={(paperId) => navigate({ kind: 'paper', paperId })}
-          onClose={closePaper}
+          onSelect={navigate}
+          onClose={closeTab}
         />
         <span className="brand-tagline">LLM for your chosen scientific literature</span>
       </header>
@@ -527,10 +562,22 @@ export default function App() {
               openPaperInBackground(paperId, truncateTitle(title, 200))
             }
           />
+        ) : view.kind === 'savedChat' && !sessions.messagesFor(view.chatId) ? (
+          <section className="chat" aria-label="Chat">
+            <p
+              className={`results-message${sessions.errorFor(view.chatId) ? ' results-error' : ''}`}
+              role={sessions.errorFor(view.chatId) ? 'alert' : 'status'}
+            >
+              {!unlocked
+                ? 'Enter the access code to open this conversation.'
+                : sessions.errorFor(view.chatId) ?? 'Loading…'}
+            </p>
+          </section>
         ) : (
           <ChatWindow
-            messages={messages}
-            onSend={(text) => void handleSend(text)}
+            key={viewKey(view)}
+            messages={sessions.messagesFor(visibleChatId ?? 'draft') ?? []}
+            onSend={(text) => void handleSend(text, shownChatId)}
             onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
             onOpenCitation={(citation, entityIds, title) =>
               openCitation(citation, entityIds, truncateTitle(title, 200))

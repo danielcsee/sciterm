@@ -34,8 +34,9 @@ relative URLs for exactly this reason.
 `typescript`, and the `@types/*` packages.
 
 No router, state manager, or component library — the app is a single page and
-does not need them yet. Saved conversations are listed at `/conversations` and
-restore their messages into the main chat pane.
+does not need them yet. Saved conversations are listed at `/conversations`;
+opening one gives it its own tab at `/chat/<id>`, as papers get, leaving the
+homepage's chat untouched.
 
 ## Notes
 

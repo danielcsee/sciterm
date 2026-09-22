@@ -1,18 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { truncateTitle, type PaperTab, type View } from '../navigation'
+import {
+  tabKey,
+  tabView,
+  truncateTitle,
+  viewKey,
+  type OpenTab,
+  type TabView,
+  type View,
+} from '../navigation'
 
 interface Props {
-  tabs: PaperTab[]
+  tabs: OpenTab[]
   active: View
-  /** Tabs briefly wearing the selected styling after being opened in the
-      background. Purely visual — they are not selected. */
+  /** Paper tabs briefly wearing the selected styling after being opened in
+      the background. Purely visual — they are not selected. */
   flashing: ReadonlySet<number>
-  onSelect: (paperId: number) => void
-  onClose: (paperId: number) => void
+  onSelect: (view: TabView) => void
+  onClose: (view: TabView) => void
 }
 
 /**
- * The scrolling half of the tab bar.
+ * The scrolling half of the tab bar: open papers and saved conversations.
  *
  * Separate from the My Corpus tab on purpose: that one must stay put while
  * these scroll, and the only way to guarantee that is for the overflow to live
@@ -27,7 +35,7 @@ export default function PaperTabs({
 }: Props) {
   const stripRef = useRef<HTMLDivElement>(null)
   const [overflowing, setOverflowing] = useState(false)
-  const activeId = active.kind === 'paper' ? active.paperId : null
+  const activeKey = viewKey(active)
 
   // The fade means "there is more to the right", so it must appear only when
   // that is true — not whenever the strip happens to be narrower than its slot.
@@ -54,27 +62,27 @@ export default function PaperTabs({
   // A newly opened tab is appended off-screen once the strip overflows; bring
   // the selected one into view rather than making the user hunt for it.
   useEffect(() => {
-    if (activeId === null) return
     stripRef.current
-      ?.querySelector(`[data-paper-id="${activeId}"]`)
+      ?.querySelector(`[data-tab-key="${activeKey}"]`)
       ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [activeId, tabs.length])
+  }, [activeKey, tabs.length])
 
   if (tabs.length === 0) return null
 
   return (
     <div className="paper-tabs">
-      <div className="paper-tabs-strip" ref={stripRef} role="tablist" aria-label="Open papers">
+      <div className="paper-tabs-strip" ref={stripRef} role="tablist" aria-label="Open tabs">
         {tabs.map((tab) => {
-          const selected = tab.paperId === activeId
-          const flash = flashing.has(tab.paperId)
+          const key = tabKey(tab)
+          const selected = key === activeKey
+          const flash = tab.kind === 'paper' && flashing.has(tab.paperId)
           return (
             <span
-              key={tab.paperId}
+              key={key}
               className={`paper-tab${selected ? ' paper-tab-active' : ''}${
                 flash ? ' paper-tab-flash' : ''
               }`}
-              data-paper-id={tab.paperId}
+              data-tab-key={key}
             >
               <button
                 type="button"
@@ -82,7 +90,7 @@ export default function PaperTabs({
                 aria-selected={selected}
                 className="paper-tab-label"
                 title={tab.title}
-                onClick={() => onSelect(tab.paperId)}
+                onClick={() => onSelect(tabView(tab))}
               >
                 {truncateTitle(tab.title)}
               </button>
@@ -90,7 +98,7 @@ export default function PaperTabs({
                 type="button"
                 className="paper-tab-close"
                 aria-label={`Close ${tab.title}`}
-                onClick={() => onClose(tab.paperId)}
+                onClick={() => onClose(tabView(tab))}
               >
                 ✕
               </button>

@@ -10,8 +10,8 @@ shared types, navigation, import tracking, the API client, plus
 **`main.tsx`** — mounts `<App />` into `#root`, wrapped in `<AuthProvider>`,
 and imports `styles.css`.
 
-**`App.tsx`** — owns chat state, the open paper tabs and the visit stack.
-Closing a paper tab pops that stack, skipping entries whose tab has since
+**`App.tsx`** — owns chat state, the open paper and chat tabs and the visit
+stack. Closing a tab pops that stack, skipping entries whose tab has since
 closed: that is how "go back to where I was" works. `handleSend` reads the
 `/corpus/rag_search` stream, folding each line into the reply with
 `ragAnswer.ts`. It creates or appends the durable chat turn before opening that
@@ -27,8 +27,9 @@ case-insensitive runs naming an entity, longest phrase first.
 The sciterm logo is a link to `/`: a plain click returns to the chat in-app,
 keeping the conversation; a modified click opens a new tab.
 
-**`navigation.ts`** — `View`, the tab model, title truncation, the view↔URL
-mapping, and `loadTabs`/`saveTabs`. The corpus and groups UI routes are
+**`navigation.ts`** — `View`, the tab model (paper and saved-chat tabs), title
+truncation, the view↔URL mapping, and `loadTabs`/`saveTabs`. A saved chat's
+tab lives at `/chat/<id>`; `/` is always the homepage's own chat. The corpus and groups UI routes are
 `/my-corpus` and `/my-groups`, clear of the `/corpus` and `/groups` API paths. Open tabs persist to `localStorage`; the active view
 does not, since the URL carries it. Reads are validated and access guarded —
 the store throws outright in a private window.
