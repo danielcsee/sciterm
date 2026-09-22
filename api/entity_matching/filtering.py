@@ -20,15 +20,20 @@ StrategyKey = tuple[ExtractionMethod, MatchMethod, MatchSource]
 
 
 def filter_entity_matches(
-    groups: Sequence[EntityMatchGroup], query: str, cutoffs: MatchCutoffs
+    groups: Sequence[EntityMatchGroup],
+    query: str,
+    cutoffs: MatchCutoffs,
+    *,
+    max_per_strategy: int = MAX_CANDIDATES_PER_STRATEGY,
 ) -> list[EntityStrategyGroup]:
     """Dedupe, keep the top candidates per strategy, then drop low scores.
 
     A strategy is one extraction/matcher/source path pooled across fragments.
-    Short queries keep fewer candidates: one per query word, up to five. Each
-    matcher is held to its own cutoff, since their scores are not comparable.
+    Short texts keep fewer candidates: one per word, up to `max_per_strategy`.
+    Each matcher is held to its own cutoff, since their scores are not
+    comparable.
     """
-    limit = candidate_limit(query)
+    limit = candidate_limit(query, max_per_strategy)
     filtered: list[EntityStrategyGroup] = []
     for (extraction, method, source), candidates in _pool_by_strategy(groups).items():
         top = _dedupe_by_text(candidates)[:limit]
@@ -44,9 +49,9 @@ def filter_entity_matches(
     return filtered
 
 
-def candidate_limit(query: str) -> int:
-    """Five candidates, or one per word when the query is shorter than that."""
-    return min(MAX_CANDIDATES_PER_STRATEGY, len(query.split()))
+def candidate_limit(query: str, max_per_strategy: int = MAX_CANDIDATES_PER_STRATEGY) -> int:
+    """`max_per_strategy` candidates, or one per word when the text is shorter."""
+    return min(max_per_strategy, len(query.split()))
 
 
 def _pool_by_strategy(

@@ -4,7 +4,7 @@ Reads over papers that finished importing.
 
 ```
 GET /corpus?page=1&page_size=20   ->  CorpusPage        (the listing)
-GET /corpus/rag_search?query=...  ->  NDJSON stream     (routed tool + papers, then the answer)
+GET /corpus/rag_search?query=...  ->  NDJSON stream     (candidates, papers, answer, its entities)
 GET /corpus/{paper_id}            ->  CorpusPaperDetail (one whole paper)
 GET /corpus/{paper_id}/references ->  ReferenceList     (importable refs)
 GET /corpus/{paper_id}/imported-references -> ImportedReferenceList (local citing papers)
@@ -17,7 +17,8 @@ Read-only: `api.ingestion` writes these tables, this package reads them.
 
 | File | Purpose |
 |---|---|
-| `routes.py` | The four GET routes: paging and validation |
+| `routes.py` | The GET routes: paging and validation |
+| `rag.py` | The chat pipeline behind `rag_search`, one NDJSON line per stage |
 | `queries.py` | Listing, detail and reference reads |
 | `models.py` | Response models for all four |
 
@@ -49,10 +50,13 @@ query calls for and which candidates it names. `paper_search` and
 papers. `paper_analysis` then fills `analysis` via `api.paper_analysis`: a
 cited answer, and the paragraphs it cites.
 
-**`rag_search` streams.** The answer takes ~12s to write, so the response is
-NDJSON: a `result` line with everything but the answer (citations included),
-then `answer_delta` lines and one `answer_done`. See `RagResultEvent` and its
-siblings in `models.py`. When routing is unconfigured or fails, the search still runs on noun
+**`rag_search` streams each stage as it finishes** (`rag.py`):
+`entity_matches` before OpenAI is asked anything, then `result` (everything
+but the answer, citations included), then `answer_delta` lines and one
+`answer_done`, and last `answer_entities`. That last stage reruns the query's
+entity matching over the finished answer, with twice the candidate cap, and
+OpenAI confirms every phrase naming each entity; it waits for the answer so it
+never holds it up. Event models are in `models.py`. When routing is unconfigured or fails, the search still runs on noun
 phrases and `intent_error` explains what happened. The OpenAI call and the
 paper search use separate DB sessions, so no connection waits on OpenAI.
 

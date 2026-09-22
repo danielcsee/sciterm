@@ -114,49 +114,47 @@ export default function ChatWindow({ messages, onSend, onOpenPaper, onOpenCitati
                   {message.role === 'user' ? 'You' : 'sciterm'}
                 </div>
                 <div className="message-body">
+                  {message.entityMatches && (
+                    <DebugDisclosure label="Entity Matches">
+                      <DebugDisclosure label="Raw Candidates">
+                        <EntityMatchResults groups={message.entityMatches} />
+                      </DebugDisclosure>
+                      <DebugDisclosure label="Filtered Candidates">
+                        <EntityMatchResults groups={message.filteredEntityMatches ?? []} />
+                      </DebugDisclosure>
+                      {message.intentEntities && (
+                        <DebugDisclosure label="OpenAI Entities">
+                          <IntentEntityList entities={message.intentEntities} />
+                        </DebugDisclosure>
+                      )}
+                    </DebugDisclosure>
+                  )}
                   {message.status === 'pending' ? (
                     <span className="rag-pending" role="status">
                       <span className="spinner" aria-hidden="true" />
                       <span>{message.text}</span>
                     </span>
+                  ) : message.analysis ? (
+                    <AnalysisMessage
+                      analysis={message.analysis}
+                      papers={message.results ?? []}
+                      pending={message.answerPending ?? false}
+                      entities={message.answerEntities ?? []}
+                      entitiesPending={message.answerEntitiesPending ?? false}
+                      fallbackText={message.text}
+                      isLatest={index === messages.length - 1}
+                      onOpenPaper={onOpenPaper}
+                      onOpenCitation={(citation) => openCitation(message, citation)}
+                    />
                   ) : (
                     <>
-                      {message.analysis ? (
-                        <AnalysisMessage
-                          analysis={message.analysis}
-                          papers={message.results ?? []}
-                          pending={message.answerPending ?? false}
-                          fallbackText={message.text}
-                          isLatest={index === messages.length - 1}
+                      {message.text && <p className="rag-text">{message.text}</p>}
+                      {message.results && (
+                        <RagResults
+                          papers={message.results}
+                          papersConsidered={message.papersConsidered ?? 0}
                           onOpenPaper={onOpenPaper}
-                          onOpenCitation={(citation) => openCitation(message, citation)}
                         />
-                      ) : (
-                        <>
-                          {message.text && <p className="rag-text">{message.text}</p>}
-                          {message.results && (
-                            <RagResults
-                              papers={message.results}
-                              papersConsidered={message.papersConsidered ?? 0}
-                              onOpenPaper={onOpenPaper}
-                            />
-                          )}
-                        </>
-                      )}
-                      {message.entityMatches && (
-                        <DebugDisclosure>
-                          <DebugDisclosure label="Raw Candidates">
-                            <EntityMatchResults groups={message.entityMatches} />
-                          </DebugDisclosure>
-                          <DebugDisclosure label="Filtered Candidates">
-                            <EntityMatchResults groups={message.filteredEntityMatches ?? []} />
-                          </DebugDisclosure>
-                          {message.intentEntities && (
-                            <DebugDisclosure label="OpenAI Entities">
-                              <IntentEntityList entities={message.intentEntities} />
-                            </DebugDisclosure>
-                          )}
-                        </DebugDisclosure>
                       )}
                     </>
                   )}

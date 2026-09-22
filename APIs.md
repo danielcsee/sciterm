@@ -192,3 +192,25 @@ error, and an empty answer is one too. Timeout
 `OPENAI_ANALYSIS_TIMEOUT_SECONDS` (60s) bounds each read, **no retry**.
 Measured at ~12s for 10 passages with `gpt-5-mini` at `low` effort (~17s for
 the whole request); streamed, the first words arrive after ~3.5s of that.
+
+### `POST /responses` — entities named in the answer
+
+A third call, after a `paper_analysis` answer finishes streaming, via
+`client.responses.parse`. The query's entity matching runs over the answer
+first, keeping `ANSWER_ENTITY_CANDIDATES_PER_STRATEGY` (10) candidates per
+strategy instead of 5.
+
+| Param | Value |
+|---|---|
+| `model` | `OPENAI_MODEL` |
+| `instructions` | The prompt in `api/llm/answer_entities.py` |
+| `input` | JSON: `{text, candidate_entities: [{id, name, type, matched_text}]}` |
+| `tools` | `answer_entities` only — strict schema from Pydantic |
+| `tool_choice` | `required`, with `parallel_tool_calls: false` |
+| `reasoning.effort` | `OPENAI_REASONING_EFFORT`; omitted when unset |
+| `store` | `false` |
+
+Response: one `function_call` with `entities: [{entity_id, phrases}]`. Invented
+ids and phrases the answer does not contain are dropped. Timeout
+`OPENAI_TIMEOUT_SECONDS` (20s), one retry. Measured at ~8s for 8 candidates,
+after ~4s of matching, with `gpt-5-mini` at `low` effort.

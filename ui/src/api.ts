@@ -501,14 +501,31 @@ export interface EntityStrategyGroup {
   matches: FilteredEntityMatch[]
 }
 
-/** One line of the `/corpus/rag_search` stream. */
+/** An entity a generated answer names, with every phrase naming it there. */
+export interface AnswerEntity {
+  entity_id: number
+  identifier: string
+  entity_type: string
+  name: string | null
+  phrases: string[]
+}
+
+/** One line of the `/corpus/rag_search` stream, in the order they arrive. */
 export type RagStreamEvent =
-  /** Always first: everything but the answer, whose `analysis.answer` is null. */
+  /** Always first, before OpenAI is asked anything: the query's candidates. */
+  | {
+      type: 'entity_matches'
+      entity_matches: EntityMatchGroup[]
+      filtered_entity_matches: EntityStrategyGroup[]
+    }
+  /** Everything but the answer, whose `analysis.answer` is null. */
   | { type: 'result'; result: RagSearchResponse }
   /** The next piece of a `paper_analysis` answer. */
   | { type: 'answer_delta'; text: string }
-  /** Last: the whole answer, trimmed, or why there is none. */
+  /** The whole answer, trimmed, or why there is none. */
   | { type: 'answer_done'; answer: string | null; model: string | null; error: string | null }
+  /** Last, only after an answer was written: the entities it names. */
+  | { type: 'answer_entities'; entities: AnswerEntity[]; error: string | null }
 
 /**
  * Ranked papers and the routed tool, then any answer as it is written.

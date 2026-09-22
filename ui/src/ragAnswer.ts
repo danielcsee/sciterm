@@ -4,6 +4,9 @@ import type { Message } from './types'
 /** Shown when the connection closes before the answer says it is finished. */
 const CUT_OFF = 'The answer stopped arriving before it was finished.'
 
+/** Shown when the connection closes before the search's result arrives. */
+const SEARCH_CUT_OFF = 'The search stopped before it finished.'
+
 /**
  * The message text: an analysis's failure when it has no answer to show, or
  * else the routed tool's name, or why there is none.
@@ -22,6 +25,12 @@ export function applyRagEvent(
   response: RagSearchResponse | null,
 ): Message {
   switch (event.type) {
+    case 'entity_matches':
+      return {
+        ...message,
+        entityMatches: event.entity_matches,
+        filteredEntityMatches: event.filtered_entity_matches,
+      }
     case 'result':
       return resultMessage(message, event.result)
     case 'answer_delta':
@@ -33,29 +42,42 @@ export function applyRagEvent(
     case 'answer_done':
       if (!message.analysis || !response) return message
       return finishAnswer(message, response, event.answer, event.model, event.error)
+    case 'answer_entities':
+      return { ...message, answerEntities: event.entities, answerEntitiesPending: false }
   }
 }
 
 /**
- * Close an answer the stream never finished, so no spinner outlives the
- * connection. A no-op once `answer_done` has arrived.
+ * Close whatever the stream left unfinished, so no spinner outlives the
+ * connection. A no-op once every stage has arrived.
  */
 export function endRagStream(message: Message, response: RagSearchResponse | null): Message {
-  if (!message.answerPending || !message.analysis || !response) return message
-  return finishAnswer(message, response, null, null, CUT_OFF)
+  if (message.status === 'pending') return failSearch(message, SEARCH_CUT_OFF)
+  if (message.answerPending && message.analysis && response) {
+    return finishAnswer(message, response, null, null, CUT_OFF)
+  }
+  if (message.answerEntitiesPending) return { ...message, answerEntitiesPending: false }
+  return message
 }
 
-/** The search itself failed: nothing arrived to show. */
+/** The search failed before its result arrived. Candidates already shown stay. */
 export function searchFailed(message: Message, err: unknown): Message {
+  return failSearch(
+    message,
+    err instanceof ApiError ? err.message : 'Could not reach the search service.',
+  )
+}
+
+function failSearch(message: Message, text: string): Message {
   return {
     ...message,
     status: 'error',
-    text: err instanceof ApiError ? err.message : 'Could not reach the search service.',
+    text,
     results: undefined,
     analysis: undefined,
     answerPending: undefined,
-    entityMatches: undefined,
-    filteredEntityMatches: undefined,
+    answerEntities: undefined,
+    answerEntitiesPending: undefined,
     intentEntities: undefined,
   }
 }
@@ -90,6 +112,8 @@ function finishAnswer(
     ...message,
     analysis,
     answerPending: false,
+    // The server looks for the answer's entities only once it has one.
+    answerEntitiesPending: answer !== null,
     text: intentText({ ...response, analysis }),
   }
 }

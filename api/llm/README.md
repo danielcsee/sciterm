@@ -15,6 +15,7 @@ rag_search -> filter_entity_matches -> classify_intent -> IntentResult -> api.pa
 | `client.py` | `LlmClient`: a forced single tool call (`choose_tool`), or streamed free text (`stream_text`) |
 | `analysis.py` | The answer prompt: numbered passages in, prose citing `[n]` out |
 | `intent.py` | The prompt, candidate payload, and joining the model's entities back to candidates |
+| `answer_entities.py` | Its own tool: every phrase naming each candidate in a generated answer |
 | `models.py` | `IntentResult` / `IntentEntity`, returned on `RagSearchResponse.intent` |
 
 ## Decisions worth knowing
@@ -26,6 +27,11 @@ same class. Never hand-write a tool schema.
 **One call does both jobs.** Every tool carries `entities`, and
 `tool_choice="required"` with `parallel_tool_calls=False` forces exactly one
 call — so the intent and the entities arrive together.
+
+**Answers get their own entity tool.** Routing returns one phrase per entity,
+because `api.paper_search` makes each distinct phrase one ranking term, and a
+list would change ranking. `answer_entities` returns a phrase list instead, and
+drops any phrase the answer does not contain.
 
 **Entities are ids, checked on return.** Candidates go out as
 `{id, name, type, matched_text}`; the model answers with `{entity_id, phrase}`.
