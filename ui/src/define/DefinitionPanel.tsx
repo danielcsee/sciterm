@@ -6,13 +6,13 @@ type DeleteStatus = 'deleting' | { error: string }
 
 interface Props {
   definitions: Definition[]
-  onHide: (id: string) => void
+  onToggleHidden: (id: string) => void
   /** Resolves once the annotation is deleted; rejects if the server refused. */
   onDelete: (id: string) => Promise<void>
 }
 
 /** Highlighted phrases and their definitions, newest first. */
-export default function DefinitionPanel({ definitions, onHide, onDelete }: Props) {
+export default function DefinitionPanel({ definitions, onToggleHidden, onDelete }: Props) {
   const scrollRef = useRef<HTMLElement>(null)
   const newestId = definitions[0]?.id
   // Keyed by definition id: in flight, or the server's refusal to show.
@@ -41,23 +41,15 @@ export default function DefinitionPanel({ definitions, onHide, onDelete }: Props
             <h2 className="definition-phrase">{definition.phrase}</h2>
             <DefinitionActions
               phrase={definition.phrase}
+              hidden={definition.hidden}
               // A definition still being generated is written to once more
               // when it arrives, so it cannot be deleted from under that.
               canDelete={definition.status !== 'loading' && deletes.get(definition.id) !== 'deleting'}
-              onHide={() => onHide(definition.id)}
+              onToggleHidden={() => onToggleHidden(definition.id)}
               onDelete={() => void remove(definition.id)}
             />
           </div>
-          {definition.status === 'loading' && (
-            <div className="results-loading" role="status">
-              <span className="spinner" aria-hidden="true" />
-              <span>Defining…</span>
-            </div>
-          )}
-          {definition.status === 'done' && <p className="definition-text">{definition.text}</p>}
-          {definition.status === 'error' && (
-            <p className="results-message results-error">{definition.error}</p>
-          )}
+          {!definition.hidden && <DefinitionBody definition={definition} />}
           <DeleteError status={deletes.get(definition.id)} />
         </article>
       ))}
@@ -65,15 +57,30 @@ export default function DefinitionPanel({ definitions, onHide, onDelete }: Props
   )
 }
 
+function DefinitionBody({ definition }: { definition: Definition }) {
+  if (definition.status === 'loading') {
+    return (
+      <div className="results-loading" role="status">
+        <span className="spinner" aria-hidden="true" />
+        <span>Defining…</span>
+      </div>
+    )
+  }
+  if (definition.status === 'done') return <p className="definition-text">{definition.text}</p>
+  return <p className="results-message results-error">{definition.error}</p>
+}
+
 function DefinitionActions({
   phrase,
+  hidden,
   canDelete,
-  onHide,
+  onToggleHidden,
   onDelete,
 }: {
   phrase: string
+  hidden: boolean
   canDelete: boolean
-  onHide: () => void
+  onToggleHidden: () => void
   onDelete: () => void
 }) {
   return (
@@ -81,11 +88,12 @@ function DefinitionActions({
       <button
         type="button"
         className="definition-hide"
-        onClick={onHide}
-        aria-label={`Hide ${phrase}`}
-        title="Hide until reload; it stays saved"
+        onClick={onToggleHidden}
+        aria-label={`${hidden ? 'Show' : 'Hide'} ${phrase}`}
+        aria-expanded={!hidden}
+        title={hidden ? 'Show the definition and underline' : 'Hide the definition and underline until reload; it stays saved'}
       >
-        Hide
+        {hidden ? 'Show' : 'Hide'}
       </button>
       <button
         type="button"

@@ -22,7 +22,7 @@ interface Props {
   /** Highlighted terms' definitions, shown newest first under the search box. */
   definitions: Definition[]
   onClearDefinition: () => void
-  onHideDefinition: (id: string) => void
+  onToggleDefinitionHidden: (id: string) => void
   onDeleteDefinition: (id: string) => Promise<void>
 }
 
@@ -39,7 +39,7 @@ export default function PaperExplorer({
   onOpenPaper,
   definitions,
   onClearDefinition,
-  onHideDefinition,
+  onToggleDefinitionHidden,
   onDeleteDefinition,
 }: Props) {
   // Both panels queue through here, so gating this one function covers the
@@ -94,7 +94,7 @@ export default function PaperExplorer({
           importing={importing}
           definitions={definitions}
           onClearDefinition={onClearDefinition}
-          onHideDefinition={onHideDefinition}
+          onToggleDefinitionHidden={onToggleDefinitionHidden}
           onDeleteDefinition={onDeleteDefinition}
         />
       </div>

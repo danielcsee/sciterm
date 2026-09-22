@@ -25,13 +25,15 @@ the highlight.
 
 **`useDefinition.ts`** / **`api.ts`** — the definitions on screen, newest
 first, the typed define call, and owner-scoped annotation reads and deletes.
-Hiding one leaves it saved but drops it, and its underline, until a reload. The server
+Hiding one leaves it saved but collapses its text and drops its underline
+until a reload or Show. The server
 saves the selector before defining; a definition that never arrived shows as
 an error.
 
 **`DefinitionPanel.tsx`** — the scrollable list of phrases with their
 spinner, definition or error; a new one scrolls to the top. Each card
-has Hide and a red bin that permanently deletes it.
+has Hide (Show once hidden, keeping the title and icons) and a red bin that
+permanently deletes it.
 
 ## Wiring
 
