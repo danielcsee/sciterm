@@ -18,8 +18,8 @@ interface Props {
   /** Queue papers. The container owns import state so both panels share one. */
   onImport: (pmids: ImportPmids[], papers: SearchResult[]) => void
   importing: boolean
-  /** Shown in place of the results until the next search replaces it. */
-  definition: Definition | null
+  /** Shown newest first in place of the results until the next search. */
+  definitions: Definition[]
   onClearDefinition: () => void
 }
 
@@ -27,7 +27,7 @@ interface Props {
 export default function SearchPubTator({
   onImport,
   importing,
-  definition,
+  definitions,
   onClearDefinition,
 }: Props) {
   // Every search is a PubTator call against a shared rate limit, so the search
@@ -204,17 +204,19 @@ export default function SearchPubTator({
         </button>
       </form>
 
-      {definition && <DefinitionPanel definition={definition} onClose={onClearDefinition} />}
+      {definitions.length > 0 && (
+        <DefinitionPanel definitions={definitions} onClose={onClearDefinition} />
+      )}
 
-      {totalResults > 0 && !definition && (
+      {totalResults > 0 && definitions.length === 0 && (
         <p className="search-count">
           {totalResults.toLocaleString()} result{totalResults === 1 ? '' : 's'}
         </p>
       )}
 
-      {/* Hidden, not unmounted, under a definition: closing it brings back
+      {/* Hidden, not unmounted, under definitions: closing them brings back
           the results, their scroll position and the selection. */}
-      <div className="results" ref={scrollRef} hidden={definition !== null}>
+      <div className="results" ref={scrollRef} hidden={definitions.length > 0}>
         {error && <p className="results-message results-error">{error}</p>}
         {empty && <p className="results-message">No papers matched that query.</p>}
 

@@ -26,13 +26,17 @@ selection, scroll and resize; never mid-drag.
 **`DefineTermButton.tsx`** — the fixed-position button. Its mousedown is
 cancelled so clicking it keeps the highlight.
 
-**`useDefinition.ts`** / **`api.ts`** — the definition on screen, and the
-typed call. A new request aborts the last.
+**`useDefinition.ts`** / **`api.ts`** — the definitions on screen, newest
+first, and the typed call. Requests resolve independently without removing
+earlier definitions.
 
-**`DefinitionPanel.tsx`** — the phrase, then a spinner, definition or error.
+**`DefinitionPanel.tsx`** — a vertically scrollable list of phrases and their
+spinner, definition or error. A new definition scrolls the list back to its
+newest entry at the top.
 
 ## Wiring
 
 `App` owns `useDefinition()` and renders the button, gated by `requireAuth`
-(it spends OpenAI tokens). `SearchPubTator` shows the panel in place of its
-results, hidden rather than unmounted, and clears it when a search starts.
+(it spends OpenAI tokens). `SearchPubTator` shows the definition list in place
+of its results, hidden rather than unmounted, and clears it when a search
+starts.

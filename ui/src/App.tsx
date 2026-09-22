@@ -377,7 +377,7 @@ export default function App() {
           referencesFor={referencesFor}
           onCloseReferences={() => setReferencesFor(null)}
           onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
-          definition={definition.definition}
+          definitions={definition.definitions}
           onClearDefinition={clearDefinition}
         />
       </main>
