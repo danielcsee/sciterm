@@ -13,7 +13,7 @@ started inside this repo, the same way it reads `AGENTS.md`. Verify what it
 actually sees with:
 
 ```bash
-codex debug prompt-input | grep -i llm-graph-practice-claude
+codex debug prompt-input | grep -i sciterm
 ```
 
 `.claude-sync.json` records every generated file so re-runs stay idempotent, files you

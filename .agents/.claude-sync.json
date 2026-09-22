@@ -2,12 +2,14 @@
   "generated_by": "aiutils claude-to-codex",
   "note": "Tracks files generated from the Claude Code config. Do not edit.",
   "files": {
-    ".agents/README.md": "9d5fec9adb3e0d06f9d48304939f290d0190fd1e2b5f78830e1eaacaa16bb1c8",
-    ".agents/skills/backend/SKILL.md": "a80400304e63a70c2544cffddb4c2c48c07c58a2bb5339318abe3292047d76fa",
-    ".agents/skills/ci/SKILL.md": "e728e45b90d05b98031f6e59d0b7732fb322ff67ac63f2f00cdc79e204274b66",
+    ".agents/README.md": "2ec2228dabf391be14e7ff480b538d1750a5869d857a2f4a8d8ecd3c676f5ffe",
+    ".agents/skills/backend/SKILL.md": "56c25e3a7492026214cd78475bbec52ba50ed0165568840796e5db63a00f2568",
+    ".agents/skills/ci/SKILL.md": "ca903a420c7419966bc2c67ff6361cfc06549fd3e832cb445a63881a4a813243",
     ".agents/skills/developer/SKILL.md": "9e50f0a3943083820598adc544914572d992c39b8a2c380eea9f927f3abf4372",
+    ".agents/skills/epic/SKILL.md": "29603f12948ac252931e6ce006417dd11e3a66b8bb163f9536c06f7c4ef9a4b3",
     ".agents/skills/frontend/SKILL.md": "bdb555ec15a4562f120fbaf79bae2b72417821929d2194b28558ffb3f1990ebc",
-    ".agents/skills/test/SKILL.md": "930ab24cba640b499b751e1990d94df02bfc62ae095c53a28e711fd76aa7396c",
+    ".agents/skills/task-queue/SKILL.md": "ee47eea0c54976841b56c8bd92eae4936863f9d0f4020ac24f00cdd8276a8b10",
+    ".agents/skills/test/SKILL.md": "c8f33e3ec358d0fe36de685e42ea3543167a2ee16730f862a4015a9edeeb362d",
     "AGENTS.md": "7fa8164f708df9d8ae585da2f25dfa8820d91112b083edfe378331ce4e3c50d4"
   }
 }

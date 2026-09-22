@@ -13,6 +13,10 @@ Do not use deprecated functions, libraries, or components. If you detect that li
 
 Put major features into their own directories, and export a public interface when necessary.
 
+Avoid declaring functions inside of other functions. Prefer defining separate helpers instead.
+
+Separate 'interface' code from 'implementation', and define helper functions for implementation. A function with three distinct logical steps that each occupy ~10 lines of code should NOT implement each step inline. instead, it should call three internal helper functions as its implementation.
+
 Before doing work on a file, check the directory for a README and read that first.
 
 Whenever you add a new directory, add a README to that directory summarizing what the feature does, what dependencies it relies on, and what its subdirectories are for. Keep the README under 250 words and update it whenever you make changes to its directory.

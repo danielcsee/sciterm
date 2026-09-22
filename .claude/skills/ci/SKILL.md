@@ -3,8 +3,6 @@ name: ci
 description: Use for advancing code from dev to stage.
 ---
 
-<!-- Generated from .claude/skills/ci/SKILL.md by aiutils claude-to-codex. Do not edit; edit the source and re-run. -->
-
 If you change any code during the ci process, use the `developer` skill to make your changes. This means checking out a dedicated branch from dev to contain your changes (name it ci/<change_description>) and merging it back to dev when you're done.
 
 ## Review
