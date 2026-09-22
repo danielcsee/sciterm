@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
 from sqlalchemy import text
@@ -14,13 +14,19 @@ from sqlalchemy.orm import Session
 from api.auth import Principal
 from api.chats import queries
 from api.chats.schemas import (
-    SaveChatRequest,
+    ChatTurnCreate,
+    StartChatRequest,
     SavedChatMessage,
     SavedChatOut,
     SavedChatSummary,
     SavedCitation,
     SavedEntityPill,
 )
+from api.annotations.schemas import AnnotationSource, UserAnnotationOut
+from api.llm.models import AnswerEntity
+
+if TYPE_CHECKING:
+    from api.corpus.models import RagSearchResponse
 
 
 class MissingChatOwnerError(Exception):
@@ -85,6 +91,12 @@ class ChatManager:
             self._session.execute(text(queries.GET_MESSAGES_SQL), {"chat_id": chat_id})
         )
         citations, entities = self._children([row.id for row in message_rows])
+        annotations = [
+            _annotation_from_row(row)
+            for row in self._session.execute(
+                text(queries.GET_ANNOTATIONS_SQL), {"chat_id": chat_id}
+            )
+        ]
         messages = [
             _message_from_row(row, citations.get(row.id, []), entities.get(row.id, []))
             for row in message_rows
@@ -93,28 +105,124 @@ class ChatManager:
             chat_id=chat.chat_id,
             title=chat.title,
             messages=messages,
+            annotations=annotations,
             created_at=chat.created_at,
             updated_at=chat.updated_at,
         )
 
-    def create(self, body: SaveChatRequest) -> SavedChatOut:
+    def start(self, body: StartChatRequest) -> SavedChatOut:
+        title = body.content[:20]
         chat_id = self._session.execute(
             text(queries.INSERT_CHAT_SQL),
-            {"title": body.title, **self._owner.params()},
+            {"title": title, **self._owner.params()},
         ).scalar_one()
-        self._insert_messages(chat_id, body.messages)
+        self._insert_turn(chat_id, 0, body)
         return self._require_read_back(chat_id)
 
-    def replace(self, chat_id: int, body: SaveChatRequest) -> Optional[SavedChatOut]:
+    def append_turn(self, chat_id: int, body: ChatTurnCreate) -> Optional[SavedChatOut]:
+        found = self._session.execute(
+            text(queries.LOCK_CHAT_SQL), {"chat_id": chat_id, **self._owner.params()}
+        ).scalar_one_or_none()
+        if found is None:
+            return None
+        ordinal = self._session.execute(
+            text(queries.NEXT_MESSAGE_ORDINAL_SQL), {"chat_id": chat_id}
+        ).scalar_one()
+        self._insert_turn(chat_id, ordinal, body)
+        self._session.execute(text(queries.UPDATE_CHAT_TOUCHED_SQL), {"chat_id": chat_id})
+        return self._require_read_back(chat_id)
+
+    def save_result(
+        self, chat_id: int, message_id: UUID, result: RagSearchResponse
+    ) -> bool:
+        analysis = result.analysis
+        response_kind = result.intent.tool if result.intent else (
+            "paper_search" if result.search_method else None
+        )
+        fallback = _intent_text(result)
         updated = self._session.execute(
-            text(queries.UPDATE_CHAT_SQL),
-            {"chat_id": chat_id, "title": body.title, **self._owner.params()},
+            text(queries.UPDATE_MESSAGE_RESULT_SQL),
+            {
+                "chat_id": chat_id,
+                "message_id": str(message_id),
+                "content": analysis.answer if analysis and analysis.answer else fallback,
+                "fallback_text": fallback if analysis else None,
+                "response_kind": response_kind,
+                "result_papers": json.dumps(
+                    [paper.model_dump(mode="json") for paper in result.papers]
+                ),
+                "papers_considered": result.papers_considered,
+                "analysis_entity_ids": json.dumps(analysis.entity_ids if analysis else []),
+                "analysis_duplicates_rejected": (
+                    analysis.duplicates_rejected if analysis else 0
+                ),
+                "analysis_model": analysis.model if analysis else None,
+                "analysis_error": analysis.error if analysis else None,
+                **self._owner.params(),
+            },
         ).scalar_one_or_none()
         if updated is None:
-            return None
-        self._session.execute(text(queries.DELETE_MESSAGES_SQL), {"chat_id": chat_id})
-        self._insert_messages(chat_id, body.messages)
-        return self._require_read_back(chat_id)
+            return False
+        self._session.execute(
+            text(queries.DELETE_CITATIONS_SQL), {"message_id": str(message_id)}
+        )
+        if analysis:
+            papers = {paper.paper_id: paper for paper in result.papers}
+            for position, citation in enumerate(analysis.citations):
+                paper = papers.get(citation.paper_id)
+                self._insert_citation(message_id, citation, position, paper)
+        self._touch(chat_id)
+        return True
+
+    def save_answer(
+        self,
+        chat_id: int,
+        message_id: UUID,
+        answer: Optional[str],
+        model: Optional[str],
+        error: Optional[str],
+    ) -> bool:
+        updated = self._session.execute(
+            text(queries.UPDATE_MESSAGE_ANSWER_SQL),
+            {
+                "chat_id": chat_id,
+                "message_id": str(message_id),
+                "answer": answer,
+                "model": model,
+                "error": error,
+                **self._owner.params(),
+            },
+        ).scalar_one_or_none()
+        if updated is not None:
+            self._touch(chat_id)
+        return updated is not None
+
+    def save_entities(
+        self, chat_id: int, message_id: UUID, entities: list[AnswerEntity]
+    ) -> bool:
+        if not self._message_owned(chat_id, message_id):
+            return False
+        self._session.execute(
+            text(queries.DELETE_ENTITIES_SQL), {"message_id": str(message_id)}
+        )
+        for position, entity in enumerate(entities):
+            self._insert_entity(message_id, entity, position)
+        self._touch(chat_id)
+        return True
+
+    def fail_message(self, chat_id: int, message_id: UUID, error: str) -> bool:
+        updated = self._session.execute(
+            text(queries.FAIL_MESSAGE_SQL),
+            {
+                "chat_id": chat_id,
+                "message_id": str(message_id),
+                "error": error,
+                **self._owner.params(),
+            },
+        ).scalar_one_or_none()
+        if updated is not None:
+            self._touch(chat_id)
+        return updated is not None
 
     def delete(self, chat_id: int) -> bool:
         deleted = self._session.execute(
@@ -157,67 +265,83 @@ class ChatManager:
             )
         return citations, entities
 
-    def _insert_messages(self, chat_id: int, messages: list[SavedChatMessage]) -> None:
-        for ordinal, message in enumerate(messages):
+    def _insert_turn(self, chat_id: int, ordinal: int, turn: ChatTurnCreate) -> None:
+        for offset, values in enumerate(
+            (
+                (turn.user_message_id, "user", turn.content, "done"),
+                (turn.assistant_message_id, "assistant", "Searching your corpus…", "pending"),
+            )
+        ):
+            message_id, role, content, status = values
             self._session.execute(
                 text(queries.INSERT_MESSAGE_SQL),
                 {
-                    "id": str(message.id),
+                    "id": str(message_id),
                     "chat_id": chat_id,
-                    "ordinal": ordinal,
-                    "role": message.role,
-                    "content": message.content,
-                    "fallback_text": message.fallback_text,
-                    "status": message.status,
-                    "response_kind": message.response_kind,
-                    "result_papers": json.dumps(
-                        [paper.model_dump(mode="json") for paper in message.result_papers]
-                    ),
-                    "papers_considered": message.papers_considered,
-                    "analysis_entity_ids": json.dumps(message.analysis_entity_ids),
-                    "analysis_duplicates_rejected": message.analysis_duplicates_rejected,
-                    "analysis_model": message.analysis_model,
-                    "analysis_error": message.analysis_error,
-                },
-            )
-            self._insert_citations(message)
-            self._insert_entities(message)
-
-    def _insert_citations(self, message: SavedChatMessage) -> None:
-        papers = {paper.paper_id: paper for paper in message.result_papers}
-        for position, citation in enumerate(message.citations):
-            paper = papers.get(citation.paper_id) if citation.paper_id is not None else None
-            self._session.execute(
-                text(queries.INSERT_CITATION_SQL),
-                {
-                    "message_id": str(message.id),
-                    "number": citation.number,
-                    "position": position,
-                    "paper_id": citation.paper_id,
-                    "chunk_id": citation.chunk_id,
-                    "paper_chunk_ordinal": citation.ordinal,
-                    "paper_pmid": citation.paper_pmid or (paper.pmid if paper else None),
-                    "paper_title": citation.paper_title or (paper.title if paper else None),
-                    "section_type": citation.section_type,
-                    "quoted_text": citation.text,
-                    "selected_by": citation.selected_by,
+                    "ordinal": ordinal + offset,
+                    "role": role,
+                    "content": content,
+                    "fallback_text": None,
+                    "status": status,
+                    "response_kind": None,
+                    "result_papers": "[]",
+                    "papers_considered": 0,
+                    "analysis_entity_ids": "[]",
+                    "analysis_duplicates_rejected": 0,
+                    "analysis_model": None,
+                    "analysis_error": None,
                 },
             )
 
-    def _insert_entities(self, message: SavedChatMessage) -> None:
-        for position, entity in enumerate(message.entity_pills):
+    def _insert_entity(self, message_id: UUID, entity: object, position: int) -> None:
+        self._session.execute(
+            text(queries.INSERT_ENTITY_SQL),
+            {
+                "message_id": str(message_id),
+                "position": position,
+                "entity_id": entity.entity_id,
+                "identifier": entity.identifier,
+                "entity_type": entity.entity_type,
+                "name": entity.name,
+                "phrases": json.dumps(entity.phrases),
+            },
+        )
+
+    def _insert_citation(
+        self, message_id: UUID, citation: object, position: int, paper: object | None
+    ) -> None:
+        self._session.execute(
+            text(queries.INSERT_CITATION_SQL),
+            {
+                "message_id": str(message_id),
+                "number": citation.number,
+                "position": position,
+                "paper_id": citation.paper_id,
+                "chunk_id": citation.chunk_id,
+                "paper_chunk_ordinal": citation.ordinal,
+                "paper_pmid": paper.pmid if paper else None,
+                "paper_title": paper.title if paper else None,
+                "section_type": citation.section_type,
+                "quoted_text": citation.text,
+                "selected_by": citation.selected_by,
+            },
+        )
+
+    def _message_owned(self, chat_id: int, message_id: UUID) -> bool:
+        return (
             self._session.execute(
-                text(queries.INSERT_ENTITY_SQL),
+                text(queries.CHAT_MESSAGE_OWNED_SQL),
                 {
-                    "message_id": str(message.id),
-                    "position": position,
-                    "entity_id": entity.entity_id,
-                    "identifier": entity.identifier,
-                    "entity_type": entity.entity_type,
-                    "name": entity.name,
-                    "phrases": json.dumps(entity.phrases),
+                    "chat_id": chat_id,
+                    "message_id": str(message_id),
+                    **self._owner.params(),
                 },
-            )
+            ).scalar_one_or_none()
+            is not None
+        )
+
+    def _touch(self, chat_id: int) -> None:
+        self._session.execute(text(queries.UPDATE_CHAT_TOUCHED_SQL), {"chat_id": chat_id})
 
     def _require_read_back(self, chat_id: int) -> SavedChatOut:
         chat = self.get(chat_id)
@@ -247,3 +371,36 @@ def _message_from_row(
         citations=citations,
         entity_pills=entities,
     )
+
+
+def _annotation_from_row(row: object) -> UserAnnotationOut:
+    return UserAnnotationOut(
+        id=row.id,
+        phrase=row.phrase,
+        surrounding_context=row.surrounding_context,
+        definition=row.definition,
+        source=AnnotationSource(
+            chat_id=row.ai_chat_id,
+            chat_message_id=row.ai_chat_message_id,
+            paper_id=row.paper_id,
+            paper_chunk_ordinal=row.paper_chunk_ordinal,
+            source_key=row.source_key,
+            quote_exact=row.quote_exact,
+            quote_prefix=row.quote_prefix,
+            quote_suffix=row.quote_suffix,
+            start_offset=row.start_offset,
+            end_offset=row.end_offset,
+        ),
+        position=row.position,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+def _intent_text(result: RagSearchResponse) -> str:
+    analysis = result.analysis
+    if analysis and analysis.error and not analysis.answer:
+        return f"Could not write an answer: {analysis.error}"
+    if result.intent:
+        return f"Tool: {result.intent.tool}"
+    return f"Tool: none ({result.intent_error or 'intent routing did not run'})"

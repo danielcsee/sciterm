@@ -42,7 +42,7 @@ export default function ConversationsView({
           <p className="results-message">Loading…</p>
         ) : conversations.length === 0 ? (
           <p className="results-message">
-            No conversations yet. Save one from the chat to see it here.
+            No conversations yet. Send a message to start one.
           </p>
         ) : (
           <div className="group-grid">

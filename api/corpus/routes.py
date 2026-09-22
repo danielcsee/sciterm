@@ -8,12 +8,15 @@ stalling the event loop.
 from __future__ import annotations
 
 import logging
+import uuid
 from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import StreamingResponse
 
-from api.auth import require_user
+from api.auth import Principal, require_user
+from api.chats.manager import MissingChatOwnerError, owner_for_principal
+from api.chats.persistence import ChatArtifactWriter
 from api.corpus import queries
 from api.ncbi.errors import NcbiError
 from api.corpus.models import (
@@ -87,6 +90,9 @@ def list_corpus(
 )
 def rag_search(
     query: str = Query(..., min_length=2, description="Free-text question."),
+    chat_id: int = Query(..., ge=1),
+    assistant_message_id: uuid.UUID = Query(...),
+    principal: Principal = Depends(require_user),
 ) -> StreamingResponse:
     """Entity matching, OpenAI intent routing, paper search, then maybe an answer.
 
@@ -108,9 +114,19 @@ def rag_search(
     if not text:
         raise HTTPException(status_code=400, detail="query must not be blank")
 
+    with session_scope() as session:
+        try:
+            owner = owner_for_principal(session, principal)
+        except MissingChatOwnerError as exc:
+            raise HTTPException(status_code=401, detail="chat owner is unavailable") from exc
+    writer = ChatArtifactWriter(chat_id, assistant_message_id, owner)
+    if not writer.exists():
+        raise HTTPException(status_code=404, detail="chat assistant message does not exist")
     fragments = extract_query_fragments(text)
     result = match_query_entities(text, fragments)
-    return StreamingResponse(rag_events(result, fragments), media_type=RAG_STREAM_MEDIA_TYPE)
+    return StreamingResponse(
+        rag_events(result, fragments, writer), media_type=RAG_STREAM_MEDIA_TYPE
+    )
 
 
 @protected_router.get(

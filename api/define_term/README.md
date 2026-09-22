@@ -4,8 +4,9 @@ Defines a phrase the reader highlighted in a chat answer or a paper, in
 simpler language, using the paragraph it came from.
 
 ```
-POST /define {"phrase": "...", "surrounding_context": "..." | null}
-          -> {"definition": "..."}
+POST /define {"phrase": "...", "surrounding_context": "..." | null,
+              "annotation": { ...source and selector... }}
+          -> {"definition": "...", "annotation": { ...durable row... }}
 ```
 
 ## Files
@@ -27,6 +28,9 @@ beside the other prompts; this package is only the HTTP surface.
 `surrounding_context: null` — a long highlight carries its own context. The
 server does not re-check the word count; it only caps lengths, so one click
 cannot send a whole paper.
+
+**Saved before return.** Once OpenAI returns a definition, the route validates
+the owner-scoped chat or paper source and inserts the annotation before replying.
 
 **One whole answer, not a stream.** Definitions are about 100 words, so
 `LlmClient.complete_text` returns them whole on the routing timeout

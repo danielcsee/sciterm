@@ -9,6 +9,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from api.paper_search import SearchedPaper
+from api.annotations.schemas import UserAnnotationOut
 
 MAX_CHAT_TITLE_LENGTH = 200
 MAX_CHAT_MESSAGES = 200
@@ -38,7 +39,7 @@ class SavedChatMessage(BaseModel):
     id: uuid.UUID
     role: Literal["user", "assistant"]
     content: str
-    status: Literal["done", "error"] = "done"
+    status: Literal["pending", "done", "error"] = "done"
     fallback_text: Optional[str] = None
     response_kind: Optional[Literal["paper_search", "paper_analysis", "no_match"]] = None
     result_papers: list[SearchedPaper] = Field(default_factory=list)
@@ -64,31 +65,35 @@ class SavedChatMessage(BaseModel):
         return self
 
 
-class SaveChatRequest(BaseModel):
-    title: str = Field(..., max_length=MAX_CHAT_TITLE_LENGTH)
-    messages: list[SavedChatMessage] = Field(
-        ..., min_length=1, max_length=MAX_CHAT_MESSAGES
-    )
+class ChatTurnCreate(BaseModel):
+    user_message_id: uuid.UUID
+    assistant_message_id: uuid.UUID
+    content: str = Field(..., min_length=1, max_length=20_000)
 
-    @field_validator("title")
+    @field_validator("content")
     @classmethod
-    def _title(cls, value: str) -> str:
-        title = value.strip()
-        if not title:
-            raise ValueError("a saved chat needs a title")
-        return title
+    def _content(cls, value: str) -> str:
+        content = value.strip()
+        if not content:
+            raise ValueError("a chat message needs text")
+        return content
 
     @model_validator(mode="after")
-    def _message_order(self) -> "SaveChatRequest":
-        if self.messages[0].role != "user":
-            raise ValueError("a saved chat must begin with a user query")
-        if len({message.id for message in self.messages}) != len(self.messages):
-            raise ValueError("message ids must be unique within a chat")
+    def _different_ids(self) -> "ChatTurnCreate":
+        if self.user_message_id == self.assistant_message_id:
+            raise ValueError("user and assistant message ids must differ")
         return self
 
 
-class SavedChatOut(SaveChatRequest):
+class StartChatRequest(ChatTurnCreate):
+    pass
+
+
+class SavedChatOut(BaseModel):
     chat_id: int
+    title: str
+    messages: list[SavedChatMessage] = Field(default_factory=list)
+    annotations: list[UserAnnotationOut] = Field(default_factory=list)
     created_at: dt.datetime
     updated_at: dt.datetime
 

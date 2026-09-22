@@ -10,7 +10,10 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api.auth import require_user
+from api.annotations.manager import AnnotationManager, AnnotationSourceError
+from api.auth import Principal, require_user
+from api.chats.manager import MissingChatOwnerError, owner_for_principal
+from api.db import session_scope
 from api.define_term.models import DefineTermRequest, DefineTermResponse
 from api.llm import LlmError, define_term, get_llm_client
 
@@ -21,7 +24,9 @@ router = APIRouter(tags=["define"], dependencies=[Depends(require_user)])
 
 
 @router.post("/define", response_model=DefineTermResponse, summary="Define a highlighted phrase")
-def define(request: DefineTermRequest) -> DefineTermResponse:
+def define(
+    request: DefineTermRequest, principal: Principal = Depends(require_user)
+) -> DefineTermResponse:
     """Define `phrase` in simpler language, read in its `surrounding_context`.
 
     503 when no OpenAI key is configured; 502 when OpenAI fails or says nothing.
@@ -34,4 +39,16 @@ def define(request: DefineTermRequest) -> DefineTermResponse:
     except LlmError as exc:
         log.warning("define failed: %s", exc)
         raise HTTPException(status_code=502, detail="Could not get a definition.") from exc
-    return DefineTermResponse(definition=definition)
+    annotation = None
+    if request.annotation is not None:
+        try:
+            with session_scope() as session:
+                owner = owner_for_principal(session, principal)
+                annotation = AnnotationManager(session, owner).create(
+                    request.annotation, definition
+                )
+        except AnnotationSourceError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except MissingChatOwnerError as exc:
+            raise HTTPException(status_code=401, detail="annotation owner is unavailable") from exc
+    return DefineTermResponse(definition=definition, annotation=annotation)

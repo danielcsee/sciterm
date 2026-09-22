@@ -31,6 +31,20 @@ export interface Highlight {
   top: number
   left: number
   maxWidth: number
+  source: HighlightSource
+  selector: TextSelector
+}
+
+export type HighlightSource =
+  | { kind: 'chat'; messageId: string; sourceKey: string }
+  | { kind: 'paper'; paperId: number; chunkOrdinal: number | null; sourceKey: string }
+
+export interface TextSelector {
+  quoteExact: string
+  quotePrefix: string | null
+  quoteSuffix: string | null
+  startOffset: number
+  endOffset: number
 }
 
 export function countWords(text: string): number {
@@ -47,12 +61,69 @@ export function readHighlight(selection: Selection | null): Highlight | null {
 
   const container = closestElement(range.commonAncestorContainer, `[${DEFINABLE_ATTR}]`)
   if (!container) return null
+  const sourceElement = annotationSource(range)
+  if (!sourceElement) return null
+  const source = sourceFromElement(sourceElement)
+  if (!source) return null
   const placement = gutterPlacement(range, container)
   if (!placement) return null
 
   const surroundingContext =
     countWords(phrase) > MAX_CONTEXT_WORDS ? null : paragraphAround(range, container)
-  return { phrase, surroundingContext, range: range.cloneRange(), ...placement }
+  return {
+    phrase,
+    surroundingContext,
+    range: range.cloneRange(),
+    source,
+    selector: textSelector(range, sourceElement),
+    ...placement,
+  }
+}
+
+function annotationSource(range: Range): Element | null {
+  const start = closestElement(range.startContainer, '[data-annotation-source]')
+  const end = closestElement(range.endContainer, '[data-annotation-source]')
+  return start && start === end ? start : null
+}
+
+function sourceFromElement(element: Element): HighlightSource | null {
+  const kind = element.getAttribute('data-annotation-source')
+  if (kind === 'chat') {
+    const messageId = element.getAttribute('data-annotation-message-id')
+    return messageId
+      ? { kind, messageId, sourceKey: `message:${messageId}` }
+      : null
+  }
+  if (kind === 'paper') {
+    const paperId = Number(element.getAttribute('data-annotation-paper-id'))
+    const ordinalValue = element.getAttribute('data-annotation-chunk-ordinal')
+    const chunkOrdinal = ordinalValue === null ? null : Number(ordinalValue)
+    if (!Number.isInteger(paperId) || paperId < 1) return null
+    return {
+      kind,
+      paperId,
+      chunkOrdinal,
+      sourceKey: chunkOrdinal === null ? `paper:${paperId}:header` : `paper:${paperId}:chunk:${chunkOrdinal}`,
+    }
+  }
+  return null
+}
+
+function textSelector(range: Range, source: Element): TextSelector {
+  const before = document.createRange()
+  before.selectNodeContents(source)
+  before.setEnd(range.startContainer, range.startOffset)
+  const startOffset = before.toString().length
+  const quoteExact = range.toString()
+  const sourceText = source.textContent ?? ''
+  const endOffset = startOffset + quoteExact.length
+  return {
+    quoteExact,
+    quotePrefix: sourceText.slice(Math.max(0, startOffset - 100), startOffset) || null,
+    quoteSuffix: sourceText.slice(endOffset, endOffset + 100) || null,
+    startOffset,
+    endOffset,
+  }
 }
 
 /** Keep the requested phrase visibly tied to the definition shown in the sidebar. */

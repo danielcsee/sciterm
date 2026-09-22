@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from api.app.config import get_settings
 from api.app.health import router as health_router
+from api.annotations.routes import router as annotations_router
 from api.auth import admin_router, router as auth_router
 from api.auth.config import get_auth_settings
 from api.cache import DocumentCache
@@ -90,6 +91,7 @@ app.include_router(groups_router)
 app.include_router(group_search_router)
 app.include_router(define_router)
 app.include_router(chats_router)
+app.include_router(annotations_router)
 
 dist = settings.sciterm_ui_dist
 dev_ui_url = settings.sciterm_ui_dev_url

@@ -1,6 +1,7 @@
 import { authFetch } from '../auth/session'
 import type { AnswerEntity, Citation, PaperAnalysisResult, SearchedPaper } from '../api'
 import type { Message, MessageStatus, Role } from '../types'
+import type { UserAnnotation } from '../define'
 
 export interface SavedChatSummary {
   chat_id: number
@@ -24,7 +25,7 @@ interface SavedChatMessage {
   id: string
   role: Role
   content: string
-  status: Exclude<MessageStatus, 'pending'>
+  status: MessageStatus
   fallback_text: string | null
   response_kind: 'paper_search' | 'paper_analysis' | 'no_match' | null
   result_papers: SearchedPaper[]
@@ -37,15 +38,19 @@ interface SavedChatMessage {
   entity_pills: SavedEntityPill[]
 }
 
-interface SaveChatBody {
+export interface SavedChat {
+  chat_id: number
   title: string
   messages: SavedChatMessage[]
-}
-
-export interface SavedChat extends SaveChatBody {
-  chat_id: number
+  annotations: UserAnnotation[]
   created_at: string
   updated_at: string
+}
+
+export interface ChatTurn {
+  user_message_id: string
+  assistant_message_id: string
+  content: string
 }
 
 export async function listSavedChats(signal?: AbortSignal): Promise<SavedChatSummary[]> {
@@ -61,19 +66,15 @@ export async function loadSavedChat(chatId: number, signal?: AbortSignal): Promi
   return (await response.json()) as SavedChat
 }
 
-export async function createSavedChat(
-  title: string,
-  messages: Message[],
-): Promise<SavedChat> {
-  return writeChat('/chats', 'POST', title, messages)
+export async function startChat(turn: ChatTurn): Promise<SavedChat> {
+  return writeTurn('/chats', turn)
 }
 
-export async function updateSavedChat(
+export async function appendChatTurn(
   chatId: number,
-  title: string,
-  messages: Message[],
+  turn: ChatTurn,
 ): Promise<SavedChat> {
-  return writeChat(`/chats/${chatId}`, 'PUT', title, messages)
+  return writeTurn(`/chats/${chatId}/turns`, turn)
 }
 
 export function savedMessages(chat: SavedChat): Message[] {
@@ -86,57 +87,17 @@ export function suggestedChatTitle(messages: readonly Message[]): string {
   return query.slice(0, 20)
 }
 
-export function isChatSaveable(messages: readonly Message[]): boolean {
-  return (
-    messages.length > 0 &&
-    messages[0].role === 'user' &&
-    messages.every((message) => message.status !== 'pending')
-  )
-}
-
-async function writeChat(
+async function writeTurn(
   url: string,
-  method: 'POST' | 'PUT',
-  title: string,
-  messages: Message[],
+  turn: ChatTurn,
 ): Promise<SavedChat> {
-  const body: SaveChatBody = { title, messages: messages.map(toSavedMessage) }
   const response = await authFetch(url, {
-    method,
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(turn),
   })
-  if (!response.ok) throw new Error(await errorDetail(response, 'Could not save this chat.'))
+  if (!response.ok) throw new Error(await errorDetail(response, 'Could not save this message.'))
   return (await response.json()) as SavedChat
-}
-
-function toSavedMessage(message: Message): SavedChatMessage {
-  const analysis = message.analysis
-  const papers = message.results ?? []
-  const citations = (analysis?.citations ?? []).map((citation) => {
-    const paper = papers.find((candidate) => candidate.paper_id === citation.paper_id)
-    return {
-      ...citation,
-      paper_pmid: paper?.pmid ?? null,
-      paper_title: paper?.title ?? null,
-    }
-  })
-  return {
-    id: message.id,
-    role: message.role,
-    content: analysis ? (analysis.answer ?? '') : message.text,
-    status: message.status === 'error' ? 'error' : 'done',
-    fallback_text: analysis ? message.text : null,
-    response_kind: analysis ? 'paper_analysis' : papers.length > 0 ? 'paper_search' : null,
-    result_papers: papers,
-    papers_considered: message.papersConsidered ?? 0,
-    analysis_entity_ids: analysis?.entity_ids ?? [],
-    analysis_duplicates_rejected: analysis?.duplicates_rejected ?? 0,
-    analysis_model: analysis?.model ?? null,
-    analysis_error: analysis?.error ?? null,
-    citations,
-    entity_pills: message.answerEntities ?? [],
-  }
 }
 
 function fromSavedMessage(message: SavedChatMessage): Message {

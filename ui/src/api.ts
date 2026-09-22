@@ -535,9 +535,15 @@ export type RagStreamEvent =
  */
 export async function* streamRagSearch(
   query: string,
+  chatId: number,
+  assistantMessageId: string,
   signal?: AbortSignal,
 ): AsyncGenerator<RagStreamEvent> {
-  const params = new URLSearchParams({ query })
+  const params = new URLSearchParams({
+    query,
+    chat_id: String(chatId),
+    assistant_message_id: assistantMessageId,
+  })
   const response = await authFetch(`/corpus/rag_search?${params}`, { signal })
   if (!response.ok) throw new ApiError(await errorDetail(response), response.status)
   if (!response.body) throw new ApiError('search returned no body', response.status)

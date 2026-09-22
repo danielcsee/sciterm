@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from api.auth import Principal, require_user
 from api.chats.manager import ChatManager, MissingChatOwnerError, owner_for_principal
-from api.chats.schemas import SaveChatRequest, SavedChatList, SavedChatOut
+from api.chats.schemas import ChatTurnCreate, SavedChatList, SavedChatOut, StartChatRequest
 from api.db import session_scope
 
 router = APIRouter(prefix="/chats", tags=["chats"])
@@ -21,13 +21,13 @@ def list_chats(principal: Principal = Depends(require_user)) -> SavedChatList:
 
 
 @router.post(
-    "", response_model=SavedChatOut, status_code=201, summary="Save an AI chat"
+    "", response_model=SavedChatOut, status_code=201, summary="Start an AI chat"
 )
 def create_chat(
-    body: SaveChatRequest, principal: Principal = Depends(require_user)
+    body: StartChatRequest, principal: Principal = Depends(require_user)
 ) -> SavedChatOut:
     with session_scope() as session:
-        return ChatManager(session, _owner(session, principal)).create(body)
+        return ChatManager(session, _owner(session, principal)).start(body)
 
 
 @router.get("/{chat_id}", response_model=SavedChatOut, summary="Load a saved AI chat")
@@ -42,14 +42,17 @@ def get_chat(
         return chat
 
 
-@router.put("/{chat_id}", response_model=SavedChatOut, summary="Replace a saved AI chat")
-def replace_chat(
-    body: SaveChatRequest,
+@router.post(
+    "/{chat_id}/turns", response_model=SavedChatOut, status_code=201,
+    summary="Append a user and pending assistant turn",
+)
+def append_chat_turn(
+    body: ChatTurnCreate,
     chat_id: int = Path(..., ge=1),
     principal: Principal = Depends(require_user),
 ) -> SavedChatOut:
     with session_scope() as session:
-        chat = ChatManager(session, _owner(session, principal)).replace(chat_id, body)
+        chat = ChatManager(session, _owner(session, principal)).append_turn(chat_id, body)
         if chat is None:
             raise _not_found(chat_id)
         return chat

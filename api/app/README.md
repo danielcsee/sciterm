@@ -49,6 +49,10 @@ corpus package's `protected_router` is included before its free `router` for
 the same reason at a smaller scale: registered after, `/corpus/rag_search`
 would be matched by `/corpus/{paper_id}` and rejected as a bad integer.
 
+Chat, annotation, and definition routers are also assembled here. Chat turns
+are durable before RAG starts; generated artifacts are persisted by the stream
+pipeline, and definitions create their annotation before returning.
+
 `/admin/*` is not gated by `require_user`: those routes authenticate
 themselves with an SSH signature rather than a token, so they must stay
 reachable without one — see [`api/auth`](../auth).
@@ -67,7 +71,8 @@ only rebuilt by `--prod` and would otherwise serve a stale UI.
 authentication routers, `api.pb_client` and
 `api.pm_client` for the clients and routers, `api.ncbi` to build the one
 pooled, rate-limited HTTP client they share, and `api.cache` for the document
-cache handed to the PubTator client.
+cache handed to the PubTator client. It also assembles `api.chats`,
+`api.annotations`, and `api.define_term`.
 
 ## Configuration
 

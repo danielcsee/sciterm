@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { ApiError } from '../api'
 import { defineTerm } from './api'
+import type { AnnotationDraft, UserAnnotation } from './types'
 
 export type Definition =
-  | { id: number; phrase: string; status: 'loading' }
-  | { id: number; phrase: string; status: 'done'; text: string }
-  | { id: number; phrase: string; status: 'error'; error: string }
+  | { id: string; phrase: string; status: 'loading' }
+  | { id: string; phrase: string; status: 'done'; text: string; annotation: UserAnnotation }
+  | { id: string; phrase: string; status: 'error'; error: string }
 
 export interface DefinitionState {
   definitions: Definition[]
-  request: (phrase: string, surroundingContext: string | null) => void
+  request: (annotation: AnnotationDraft) => void
+  hydrate: (annotations: UserAnnotation[]) => void
   clear: () => void
 }
 
@@ -17,25 +19,36 @@ export interface DefinitionState {
 export function useDefinition(): DefinitionState {
   const [definitions, setDefinitions] = useState<Definition[]>([])
   const controllersRef = useRef(new Set<AbortController>())
-  const nextIdRef = useRef(0)
 
   const clear = useCallback(() => {
     abortAll(controllersRef.current)
     setDefinitions([])
   }, [])
 
-  const request = useCallback((phrase: string, surroundingContext: string | null) => {
-    const id = ++nextIdRef.current
+  const request = useCallback((annotation: AnnotationDraft) => {
     const controller = new AbortController()
     controllersRef.current.add(controller)
-    setDefinitions((current) => [{ id, phrase, status: 'loading' }, ...current])
+    setDefinitions((current) => [
+      { id: annotation.id, phrase: annotation.phrase, status: 'loading' },
+      ...current,
+    ])
     void fetchDefinition(
-      id,
-      phrase,
-      surroundingContext,
+      annotation,
       controller,
       controllersRef.current,
       setDefinitions,
+    )
+  }, [])
+
+  const hydrate = useCallback((annotations: UserAnnotation[]) => {
+    setDefinitions(
+      annotations.map((annotation) => ({
+        id: annotation.id,
+        phrase: annotation.phrase,
+        status: 'done' as const,
+        text: annotation.definition,
+        annotation,
+      })),
     )
   }, [])
 
@@ -44,27 +57,40 @@ export function useDefinition(): DefinitionState {
     return () => abortAll(controllers)
   }, [])
 
-  return { definitions, request, clear }
+  return { definitions, request, hydrate, clear }
 }
 
 async function fetchDefinition(
-  id: number,
-  phrase: string,
-  surroundingContext: string | null,
+  annotation: AnnotationDraft,
   controller: AbortController,
   controllers: Set<AbortController>,
   setDefinitions: Dispatch<SetStateAction<Definition[]>>,
 ): Promise<void> {
   try {
     const response = await defineTerm(
-      { phrase, surrounding_context: surroundingContext },
+      {
+        phrase: annotation.phrase,
+        surrounding_context: annotation.surrounding_context,
+        annotation,
+      },
       controller.signal,
     )
-    replaceDefinition(setDefinitions, { id, phrase, status: 'done', text: response.definition })
+    replaceDefinition(setDefinitions, {
+      id: annotation.id,
+      phrase: annotation.phrase,
+      status: 'done',
+      text: response.definition,
+      annotation: response.annotation,
+    })
   } catch (err) {
     if (controller.signal.aborted) return
     const error = err instanceof ApiError ? err.message : 'Could not reach the definition service.'
-    replaceDefinition(setDefinitions, { id, phrase, status: 'error', error })
+    replaceDefinition(setDefinitions, {
+      id: annotation.id,
+      phrase: annotation.phrase,
+      status: 'error',
+      error,
+    })
   } finally {
     controllers.delete(controller)
   }

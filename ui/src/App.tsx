@@ -15,8 +15,11 @@ import PaperExplorer, { type ReferenceTarget } from './components/PaperExplorer'
 import {
   clearDefinitionUnderline,
   DefineTermButton,
+  listAnnotations,
   underlineDefinitionRange,
   useDefinition,
+  type AnnotationDraft,
+  type Highlight,
 } from './define'
 import { GroupsView } from './groups'
 import { ConversationsView } from './chats'
@@ -37,12 +40,11 @@ import {
 } from './navigation'
 import type { Message, PaperFocus } from './types'
 import {
-  createSavedChat,
-  isChatSaveable,
+  appendChatTurn,
   listSavedChats,
   loadSavedChat,
   savedMessages,
-  updateSavedChat,
+  startChat,
   type SavedChatSummary,
 } from './chats/api'
 
@@ -54,14 +56,54 @@ function isNewTabClick(event: MouseEvent): boolean {
   return event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
 }
 
+function annotationFromHighlight(
+  highlight: Highlight,
+  activeChatId: number | null,
+): AnnotationDraft | null {
+  const common = {
+    id: crypto.randomUUID(),
+    phrase: highlight.phrase,
+    surrounding_context: highlight.surroundingContext,
+  }
+  const selector = {
+    source_key: highlight.source.sourceKey,
+    quote_exact: highlight.selector.quoteExact,
+    quote_prefix: highlight.selector.quotePrefix,
+    quote_suffix: highlight.selector.quoteSuffix,
+    start_offset: highlight.selector.startOffset,
+    end_offset: highlight.selector.endOffset,
+  }
+  if (highlight.source.kind === 'chat') {
+    if (activeChatId === null) return null
+    return {
+      ...common,
+      source: {
+        chat_id: activeChatId,
+        chat_message_id: highlight.source.messageId,
+        paper_id: null,
+        paper_chunk_ordinal: null,
+        ...selector,
+      },
+    }
+  }
+  return {
+    ...common,
+    source: {
+      chat_id: null,
+      chat_message_id: null,
+      paper_id: highlight.source.paperId,
+      paper_chunk_ordinal: highlight.source.chunkOrdinal,
+      ...selector,
+    },
+  }
+}
+
 export default function App() {
   const { unlocked, promptForCode, requireAuth } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [savedChats, setSavedChats] = useState<SavedChatSummary[]>([])
   const [activeChatId, setActiveChatId] = useState<number | null>(null)
-  const [activeChatTitle, setActiveChatTitle] = useState<string | null>(null)
   const [chatSaveBusy, setChatSaveBusy] = useState(false)
-  const [chatSaveError, setChatSaveError] = useState<string | null>(null)
   const [savedChatsLoading, setSavedChatsLoading] = useState(false)
   const [conversationListError, setConversationListError] = useState<string | null>(null)
   const [tabs, setTabs] = useState<PaperTab[]>(() => {
@@ -119,6 +161,21 @@ export default function App() {
       })
     return () => controller.abort()
   }, [unlocked])
+
+  useEffect(() => {
+    if (!unlocked) return
+    const source = view.kind === 'paper'
+      ? { paperId: view.paperId }
+      : view.kind === 'chat' && activeChatId !== null
+        ? { chatId: activeChatId }
+        : null
+    if (source === null) return
+    const controller = new AbortController()
+    listAnnotations(source, controller.signal)
+      .then(definition.hydrate)
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [unlocked, view, activeChatId, definition.hydrate])
 
   useEffect(() => {
     saveTabs(tabs.filter((tab) => !missing.has(tab.paperId)))
@@ -227,10 +284,12 @@ export default function App() {
    * Define a highlighted phrase in the sidebar. The definition shows under the
    * search box, so a references panel covering it is closed first.
    */
-  function defineHighlight(phrase: string, surroundingContext: string | null, range: Range) {
+  function defineHighlight(highlight: Highlight) {
+    const annotation = annotationFromHighlight(highlight, activeChatId)
+    if (!annotation) return
     setReferencesFor(null)
-    underlineDefinitionRange(range)
-    definition.request(phrase, surroundingContext)
+    underlineDefinitionRange(highlight.range)
+    definition.request(annotation)
   }
 
   function clearDefinition() {
@@ -286,10 +345,11 @@ export default function App() {
    * user staring at their own message alone.
    */
   async function handleSend(text: string) {
+    const userId = crypto.randomUUID()
     const answerId = crypto.randomUUID()
     setMessages((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), role: 'user', text },
+      { id: userId, role: 'user', text },
       { id: answerId, role: 'assistant', text: 'Searching your corpus…', status: 'pending' },
     ])
 
@@ -300,7 +360,18 @@ export default function App() {
 
     let response: RagSearchResponse | null = null
     try {
-      for await (const event of streamRagSearch(text)) {
+      const turn = {
+        user_message_id: userId,
+        assistant_message_id: answerId,
+        content: text,
+      }
+      const chat = activeChatId === null
+        ? await startChat(turn)
+        : await appendChatTurn(activeChatId, turn)
+      setActiveChatId(chat.chat_id)
+      void listSavedChats().then(setSavedChats).catch(() => undefined)
+      const chatId = chat.chat_id
+      for await (const event of streamRagSearch(text, chatId, answerId)) {
         if (event.type === 'result') response = event.result
         const current = response
         update((message) => applyRagEvent(message, event, current))
@@ -321,8 +392,8 @@ export default function App() {
     try {
       const chat = await loadSavedChat(chatId)
       setMessages(savedMessages(chat))
+      definition.hydrate(chat.annotations)
       setActiveChatId(chat.chat_id)
-      setActiveChatTitle(chat.title)
       return true
     } catch (error) {
       setConversationListError(
@@ -336,36 +407,6 @@ export default function App() {
 
   async function openConversation(chatId: number) {
     if (await loadChat(chatId)) navigate(CHAT)
-  }
-
-  async function saveChat(title: string): Promise<boolean> {
-    if (!isChatSaveable(messages)) return false
-    setChatSaveBusy(true)
-    setChatSaveError(null)
-    try {
-      const chat =
-        activeChatId === null
-          ? await createSavedChat(title, messages)
-          : await updateSavedChat(activeChatId, title, messages)
-      setActiveChatId(chat.chat_id)
-      setActiveChatTitle(chat.title)
-      try {
-        setSavedChats(await listSavedChats())
-        setConversationListError(null)
-      } catch (error) {
-        setConversationListError(
-          error instanceof Error ? error.message : 'Could not refresh saved conversations.',
-        )
-      }
-      return true
-    } catch (error) {
-      setChatSaveError(
-        error instanceof Error ? error.message : 'Could not save this conversation.',
-      )
-      return false
-    } finally {
-      setChatSaveBusy(false)
-    }
   }
 
   return (
@@ -484,12 +525,6 @@ export default function App() {
               openCitation(citation, entityIds, truncateTitle(title, 200))
             }
             onSmartGroupCreated={flashGroupsTab}
-            activeChatTitle={activeChatTitle}
-            chatSaveBusy={chatSaveBusy}
-            chatSaveError={chatSaveError}
-            canSaveChat={unlocked && isChatSaveable(messages)}
-            onOpenSave={() => setChatSaveError(null)}
-            onSaveChat={saveChat}
           />
         )}
         <PaperExplorer
@@ -502,9 +537,7 @@ export default function App() {
       </main>
       {/* Spends OpenAI tokens, so it is gated like the chat composer. */}
       <DefineTermButton
-        onDefine={(phrase, context, range) =>
-          requireAuth(() => defineHighlight(phrase, context, range))
-        }
+        onDefine={(highlight) => requireAuth(() => defineHighlight(highlight))}
       />
     </div>
   )

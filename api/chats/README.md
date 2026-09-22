@@ -5,17 +5,17 @@ redeemed access code that owns the session.
 
 ```
 GET    /chats             -> saved-chat summaries
-POST   /chats             -> create a complete chat snapshot
-GET    /chats/{id}        -> messages, citations and entity pills
-PUT    /chats/{id}        -> replace that snapshot
+POST   /chats             -> create a chat and its first turn
+GET    /chats/{id}        -> messages, citations, entity pills and annotations
+POST   /chats/{id}/turns  -> append a user message and pending assistant message
 DELETE /chats/{id}        -> delete it
 ```
 
-Messages are ordered and immutable inside a snapshot. Updating a chat replaces
-its messages in one transaction, which prevents a reload from seeing citations
-or pills from only half of an exchange. Citations and entity pills retain both
-live foreign keys and display snapshots, so a saved answer still renders when
-paper or entity metadata changes.
+The first submitted message creates the chat automatically. Each later turn is
+appended atomically, and the RAG pipeline writes results, citations, answers and
+entity pills in short transactions before streaming the completed artifact to
+the browser. Citations and pills retain live foreign keys plus display
+snapshots, so a saved answer still renders when metadata changes.
 
 Experimental entity-match/debug output is deliberately not accepted by the
 request schema and is never persisted.
@@ -24,7 +24,8 @@ request schema and is never persisted.
 
 - `models.py` — SQLAlchemy metadata for the four chat tables.
 - `queries.py` — runtime SQL constants.
-- `manager.py` — ownership resolution and transactional persistence.
+- `manager.py` — ownership resolution and incremental persistence.
+- `persistence.py` — server-side RAG artifact writer.
 - `schemas.py` — validated request and response contracts.
 - `routes.py` — authenticated REST routes.
 

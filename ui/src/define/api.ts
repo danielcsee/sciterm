@@ -2,15 +2,18 @@
 
 import { ApiError } from '../api'
 import { authFetch } from '../auth'
+import type { AnnotationDraft, UserAnnotation } from './types'
 
 export interface DefineTermRequest {
   phrase: string
   /** The paragraph the phrase was in; null for highlights over 12 words. */
   surrounding_context: string | null
+  annotation: AnnotationDraft
 }
 
 export interface DefineTermResponse {
   definition: string
+  annotation: UserAnnotation
 }
 
 export async function defineTerm(
@@ -35,4 +38,19 @@ export async function defineTerm(
     throw new ApiError(detail, response.status)
   }
   return (await response.json()) as DefineTermResponse
+}
+
+export async function listAnnotations(
+  source: { chatId: number } | { paperId: number },
+  signal?: AbortSignal,
+): Promise<UserAnnotation[]> {
+  const params = new URLSearchParams(
+    'chatId' in source
+      ? { chat_id: String(source.chatId) }
+      : { paper_id: String(source.paperId) },
+  )
+  const response = await authFetch(`/annotations?${params}`, { signal })
+  if (!response.ok) throw new ApiError('Could not load annotations.', response.status)
+  const body = (await response.json()) as { annotations: UserAnnotation[] }
+  return body.annotations
 }

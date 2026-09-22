@@ -7,8 +7,6 @@ import AnalysisMessage from './AnalysisMessage'
 import EntityMatchResults from './EntityMatchResults'
 import DebugDisclosure from './DebugDisclosure'
 import IntentEntityList from './IntentEntityList'
-import { SaveConversationModal } from '../chats'
-import { suggestedChatTitle } from '../chats/api'
 
 const EXAMPLES = [
   'What is known about BRCA1 and DNA repair?',
@@ -26,12 +24,6 @@ interface Props {
   /** Open a cited paper at the paragraph, with `entityIds` highlighted. */
   onOpenCitation: (citation: Citation, entityIds: number[], title: string | null) => void
   onSmartGroupCreated: () => void
-  activeChatTitle: string | null
-  chatSaveBusy: boolean
-  chatSaveError: string | null
-  canSaveChat: boolean
-  onOpenSave: () => void
-  onSaveChat: (name: string) => Promise<boolean>
 }
 
 export default function ChatWindow({
@@ -40,12 +32,6 @@ export default function ChatWindow({
   onOpenPaper,
   onOpenCitation,
   onSmartGroupCreated,
-  activeChatTitle,
-  chatSaveBusy,
-  chatSaveError,
-  canSaveChat,
-  onOpenSave,
-  onSaveChat,
 }: Props) {
   // Asking a question runs retrieval on the server, so the composer is a
   // gate. Locked it stays readable and clickable — clicking is what opens the
@@ -53,7 +39,6 @@ export default function ChatWindow({
   // no click events at all.
   const { unlocked, requireAuth } = useAuth()
   const [draft, setDraft] = useState('')
-  const [saveModalOpen, setSaveModalOpen] = useState(false)
   // The landing block outlives the first question: it has to animate away
   // before the answer appears, rather than vanishing the instant state changes.
   const [landingVisible, setLandingVisible] = useState(messages.length === 0)
@@ -93,7 +78,7 @@ export default function ChatWindow({
 
   function submit(text: string) {
     const trimmed = text.trim()
-    if (!trimmed) return
+    if (!trimmed || messages.some((message) => message.status === 'pending')) return
     // The gate runs `send`, never `submit`. Handing `submit` to requireAuth
     // would recurse without end: unlocked, requireAuth runs its action
     // immediately, and that action would gate itself again.
@@ -131,7 +116,12 @@ export default function ChatWindow({
         {!landingVisible && (
           <ol className="messages" data-definable-column>
             {messages.map((message, index) => (
-              <li key={message.id} className={`message message-${message.role}`}>
+              <li
+                key={message.id}
+                className={`message message-${message.role}`}
+                data-annotation-source="chat"
+                data-annotation-message-id={message.id}
+              >
                 <div className="message-role">
                   {message.role === 'user' ? 'You' : 'sciterm'}
                 </div>
@@ -226,7 +216,7 @@ export default function ChatWindow({
           type="submit"
           // Enabled while locked so the click can open the modal; the empty
           // draft is not the reason it cannot be used yet.
-          disabled={unlocked && !draft.trim()}
+          disabled={unlocked && (!draft.trim() || messages.some((message) => message.status === 'pending'))}
           onClick={(event) => {
             if (unlocked) return
             event.preventDefault()
@@ -235,27 +225,7 @@ export default function ChatWindow({
         >
           Send
         </button>
-        <button
-          className="composer-save"
-          type="button"
-          disabled={!canSaveChat || chatSaveBusy}
-          onClick={() => {
-            onOpenSave()
-            setSaveModalOpen(true)
-          }}
-        >
-          Save Conversation
-        </button>
       </form>
-      {saveModalOpen && (
-        <SaveConversationModal
-          defaultName={activeChatTitle ?? suggestedChatTitle(messages)}
-          error={chatSaveError}
-          saving={chatSaveBusy}
-          onSave={onSaveChat}
-          onClose={() => setSaveModalOpen(false)}
-        />
-      )}
     </section>
   )
 }

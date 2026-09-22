@@ -14,7 +14,8 @@ and imports `styles.css`.
 Closing a paper tab pops that stack, skipping entries whose tab has since
 closed: that is how "go back to where I was" works. `handleSend` reads the
 `/corpus/rag_search` stream, folding each line into the reply with
-`ragAnswer.ts`. A Smart Group saved from an answer briefly flashes the fixed
+`ragAnswer.ts`. It creates or appends the durable chat turn before opening that
+stream; generated artifacts are then stored by the server. A Smart Group saved from an answer briefly flashes the fixed
 Smart Groups tab in the header.
 
 **`ragAnswer.ts`** — pure message updates for that stream: the candidates, the
@@ -49,12 +50,12 @@ and retries once through `/auth/refresh` on a 401.
 **`groups/`** — the Smart Groups page: saved entity groups, the type-ahead that
 builds them, and their `/groups` API client. See its [README](groups).
 
-**`chats/`** — the `/chats` client, snapshot↔`Message[]` conversion, save
-modal, and Conversations tile view. Debug entity candidates are deliberately
-excluded.
+**`chats/`** — the `/chats` client, incremental turn creation,
+snapshot→`Message[]` conversion, and Conversations tile view. Debug entity
+candidates are deliberately excluded.
 
 **`define/`** — "Define this term": a button beside highlighted chat or
-paper text, and the definition it fetches into the sidebar. See its
+paper text, durable source selectors, and the saved definition shown in the sidebar. See its
 [README](define).
 
 **`auth/`** — the access-code gate: token store, `useAuth()`, and the modal.

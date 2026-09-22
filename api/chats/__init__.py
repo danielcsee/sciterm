@@ -1,4 +1,4 @@
-"""Saved AI chats: authenticated snapshots of messages, citations and pills."""
+"""Owner-scoped AI chats persisted incrementally as artifacts are produced."""
 
 from api.chats.routes import router
 

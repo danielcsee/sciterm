@@ -11,7 +11,8 @@ GET /corpus/{paper_id}/imported-references -> ImportedReferenceList (local citin
 GET /corpus/{paper_id}/entities   ->  PaperEntityList   (concepts + spans)
 ```
 
-Read-only: `api.ingestion` writes these tables, this package reads them.
+Corpus data is read-only here. The metered chat route also writes its generated
+artifacts through `api.chats` before sending each completed artifact downstream.
 
 ## Files
 
@@ -50,7 +51,7 @@ query calls for and which candidates it names. `paper_search` and
 papers. `paper_analysis` then fills `analysis` via `api.paper_analysis`: a
 cited answer, and the paragraphs it cites.
 
-**`rag_search` streams each stage as it finishes** (`rag.py`):
+**`rag_search` persists and then streams each stage as it finishes** (`rag.py`):
 `entity_matches` before OpenAI is asked anything, then `result` (everything
 but the answer, citations included), then `answer_delta` lines and one
 `answer_done`, and last `answer_entities`. That last stage reruns the query's

@@ -300,7 +300,11 @@ export default function PaperView({
       <div className="paper-reader">
         <div className="paper-scroll" ref={scrollRef} data-definable>
         <article className="paper-doc" data-definable-column>
-          <header className="paper-doc-header">
+          <header
+            className="paper-doc-header"
+            data-annotation-source="paper"
+            data-annotation-paper-id={paper.paper_id}
+          >
             <h1 className="paper-doc-title">{paper.title ?? 'Untitled'}</h1>
             {paper.authors.length > 0 && (
               <p className="paper-doc-authors">{paper.authors.join(', ')}</p>
@@ -377,6 +381,9 @@ export default function PaperView({
               <div
                 key={paragraph.ordinal}
                 data-ordinal={paragraph.ordinal}
+                data-annotation-source="paper"
+                data-annotation-paper-id={paper.paper_id}
+                data-annotation-chunk-ordinal={paragraph.ordinal}
                 className={
                   paragraph.ordinal === focusedOrdinal ? 'paper-doc-focus' : undefined
                 }
