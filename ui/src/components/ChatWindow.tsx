@@ -7,8 +7,8 @@ import AnalysisMessage from './AnalysisMessage'
 import EntityMatchResults from './EntityMatchResults'
 import DebugDisclosure from './DebugDisclosure'
 import IntentEntityList from './IntentEntityList'
-import SavedChatControls from '../chats/SavedChatControls'
-import type { SavedChatSummary } from '../chats/api'
+import { SaveConversationModal } from '../chats'
+import { suggestedChatTitle } from '../chats/api'
 
 const EXAMPLES = [
   'What is known about BRCA1 and DNA repair?',
@@ -26,13 +26,12 @@ interface Props {
   /** Open a cited paper at the paragraph, with `entityIds` highlighted. */
   onOpenCitation: (citation: Citation, entityIds: number[], title: string | null) => void
   onSmartGroupCreated: () => void
-  savedChats: SavedChatSummary[]
-  activeChatId: number | null
+  activeChatTitle: string | null
   chatSaveBusy: boolean
   chatSaveError: string | null
   canSaveChat: boolean
-  onLoadChat: (chatId: number) => void
-  onSaveChat: () => void
+  onOpenSave: () => void
+  onSaveChat: (name: string) => Promise<boolean>
 }
 
 export default function ChatWindow({
@@ -41,12 +40,11 @@ export default function ChatWindow({
   onOpenPaper,
   onOpenCitation,
   onSmartGroupCreated,
-  savedChats,
-  activeChatId,
+  activeChatTitle,
   chatSaveBusy,
   chatSaveError,
   canSaveChat,
-  onLoadChat,
+  onOpenSave,
   onSaveChat,
 }: Props) {
   // Asking a question runs retrieval on the server, so the composer is a
@@ -55,6 +53,7 @@ export default function ChatWindow({
   // no click events at all.
   const { unlocked, requireAuth } = useAuth()
   const [draft, setDraft] = useState('')
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
   // The landing block outlives the first question: it has to animate away
   // before the answer appears, rather than vanishing the instant state changes.
   const [landingVisible, setLandingVisible] = useState(messages.length === 0)
@@ -103,15 +102,6 @@ export default function ChatWindow({
 
   return (
     <section className="chat" aria-label="Chat">
-      <SavedChatControls
-        chats={savedChats}
-        activeChatId={activeChatId}
-        canSave={canSaveChat}
-        busy={chatSaveBusy}
-        error={chatSaveError}
-        onLoad={onLoadChat}
-        onSave={onSaveChat}
-      />
       <div className="chat-scroll" data-definable>
         {landingVisible && (
           <div className={`landing${landingLeaving ? ' landing-exit' : ''}`}>
@@ -245,7 +235,27 @@ export default function ChatWindow({
         >
           Send
         </button>
+        <button
+          className="composer-save"
+          type="button"
+          disabled={!canSaveChat || chatSaveBusy}
+          onClick={() => {
+            onOpenSave()
+            setSaveModalOpen(true)
+          }}
+        >
+          Save Conversation
+        </button>
       </form>
+      {saveModalOpen && (
+        <SaveConversationModal
+          defaultName={activeChatTitle ?? suggestedChatTitle(messages)}
+          error={chatSaveError}
+          saving={chatSaveBusy}
+          onSave={onSaveChat}
+          onClose={() => setSaveModalOpen(false)}
+        />
+      )}
     </section>
   )
 }
