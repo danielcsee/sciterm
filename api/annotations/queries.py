@@ -34,10 +34,17 @@ INSERT INTO user_annotations (
 ) VALUES (
     CAST(:id AS uuid), :owner_user_id, :owner_code_id, :chat_id,
     CAST(:message_id AS uuid), :paper_id, :paper_chunk_id, :source_key, :phrase,
-    :surrounding_context, :definition, :quote_exact, :quote_prefix, :quote_suffix,
+    :surrounding_context, NULL, :quote_exact, :quote_prefix, :quote_suffix,
     :start_offset, :end_offset, :position
 )
 RETURNING created_at, updated_at
+"""
+
+SET_DEFINITION_SQL = """
+UPDATE user_annotations
+SET definition = :definition, updated_at = now()
+WHERE id = CAST(:id AS uuid)
+RETURNING updated_at
 """
 
 LIST_ANNOTATIONS_SQL = """

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import {
   streamRagSearch,
   type Citation,
@@ -13,10 +13,9 @@ import PaperTabs from './components/PaperTabs'
 import PaperView from './components/PaperView'
 import PaperExplorer, { type ReferenceTarget } from './components/PaperExplorer'
 import {
-  clearDefinitionUnderline,
   DefineTermButton,
   listAnnotations,
-  underlineDefinitionRange,
+  useAnnotationUnderlines,
   useDefinition,
   type AnnotationDraft,
   type Highlight,
@@ -136,6 +135,11 @@ export default function App() {
   // Which paper's references the side panel is showing, if any.
   const [referencesFor, setReferencesFor] = useState<ReferenceTarget | null>(null)
   const definition = useDefinition()
+  const annotations = useMemo(
+    () => definition.definitions.map((entry) => entry.annotation),
+    [definition.definitions],
+  )
+  useAnnotationUnderlines(annotations)
 
   useEffect(() => {
     if (!unlocked) {
@@ -288,13 +292,7 @@ export default function App() {
     const annotation = annotationFromHighlight(highlight, activeChatId)
     if (!annotation) return
     setReferencesFor(null)
-    underlineDefinitionRange(highlight.range)
     definition.request(annotation)
-  }
-
-  function clearDefinition() {
-    clearDefinitionUnderline()
-    definition.clear()
   }
 
   function closePaper(paperId: number) {
@@ -532,7 +530,7 @@ export default function App() {
           onCloseReferences={() => setReferencesFor(null)}
           onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
           definitions={definition.definitions}
-          onClearDefinition={clearDefinition}
+          onClearDefinition={definition.clear}
         />
       </main>
       {/* Spends OpenAI tokens, so it is gated like the chat composer. */}

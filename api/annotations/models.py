@@ -48,7 +48,8 @@ class UserAnnotation(Base):
     source_key: Mapped[str] = mapped_column(Text, nullable=False)
     phrase: Mapped[str] = mapped_column(Text, nullable=False)
     surrounding_context: Mapped[Optional[str]] = mapped_column(Text)
-    definition: Mapped[str] = mapped_column(Text, nullable=False)
+    #: Null while the definition is being generated, or if generating it failed.
+    definition: Mapped[Optional[str]] = mapped_column(Text)
     quote_exact: Mapped[str] = mapped_column(Text, nullable=False)
     quote_prefix: Mapped[Optional[str]] = mapped_column(Text)
     quote_suffix: Mapped[Optional[str]] = mapped_column(Text)
@@ -94,7 +95,10 @@ class UserAnnotation(Base):
         CheckConstraint("length(btrim(source_key)) > 0", name="ck_user_annotations_source_key"),
         CheckConstraint("length(btrim(phrase)) > 0", name="ck_user_annotations_phrase"),
         CheckConstraint("length(btrim(quote_exact)) > 0", name="ck_user_annotations_quote"),
-        CheckConstraint("length(btrim(definition)) > 0", name="ck_user_annotations_definition"),
+        CheckConstraint(
+            "definition IS NULL OR length(btrim(definition)) > 0",
+            name="ck_user_annotations_definition",
+        ),
         Index("ix_user_annotations_chat_position", "ai_chat_id", "position"),
         Index("ix_user_annotations_paper_position", "paper_id", "position"),
         Index("ix_user_annotations_owner_user_updated", "owner_user_id", "updated_at"),

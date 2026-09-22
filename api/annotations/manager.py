@@ -26,9 +26,10 @@ class AnnotationManager:
         self._session = session
         self._owner = owner
 
-    def create(self, request: AnnotationCreate, definition: str) -> UserAnnotationOut:
+    def create(self, request: AnnotationCreate) -> UserAnnotationOut:
+        """Save the annotation now; its definition is filled in by `set_definition`."""
         chunk_id = self._resolve_source(request.source)
-        params = self._params(request, definition, chunk_id)
+        params = self._params(request, chunk_id)
         params["position"] = self._session.execute(
             text(queries.NEXT_POSITION_SQL), params
         ).scalar_one()
@@ -37,10 +38,21 @@ class AnnotationManager:
         ).one()
         return UserAnnotationOut(
             **request.model_dump(),
-            definition=definition,
+            definition=None,
             position=params["position"],
             created_at=timestamps.created_at,
             updated_at=timestamps.updated_at,
+        )
+
+    def set_definition(
+        self, annotation: UserAnnotationOut, definition: str
+    ) -> UserAnnotationOut:
+        updated_at = self._session.execute(
+            text(queries.SET_DEFINITION_SQL),
+            {"id": str(annotation.id), "definition": definition.strip()},
+        ).scalar_one()
+        return annotation.model_copy(
+            update={"definition": definition.strip(), "updated_at": updated_at}
         )
 
     def list_for_chat(self, chat_id: int) -> list[UserAnnotationOut]:
@@ -80,7 +92,7 @@ class AnnotationManager:
         return found if source.paper_chunk_ordinal is not None else None
 
     def _params(
-        self, request: AnnotationCreate, definition: str, chunk_id: int | None
+        self, request: AnnotationCreate, chunk_id: int | None
     ) -> dict[str, object]:
         source = request.source
         return {
@@ -93,7 +105,6 @@ class AnnotationManager:
             "source_key": source.source_key,
             "phrase": request.phrase.strip(),
             "surrounding_context": request.surrounding_context,
-            "definition": definition.strip(),
             "quote_exact": source.quote_exact.strip(),
             "quote_prefix": source.quote_prefix,
             "quote_suffix": source.quote_suffix,
