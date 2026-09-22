@@ -19,8 +19,8 @@ resource "aws_iam_role_policy_attachment" "task_execution" {
 
 # Secret injection happens in the agent, before the container starts, so this
 # permission belongs to the execution role rather than the task role. Scoped to
-# these two ARNs: a wildcard here would let any task in the account's
-# execution path read every secret.
+# these ARNs: a wildcard here would let any task in the account's execution
+# path read every secret.
 resource "aws_iam_role_policy" "task_execution_secrets" {
   name = "${local.name}-read-secrets"
   role = aws_iam_role.task_execution.id
@@ -32,6 +32,7 @@ resource "aws_iam_role_policy" "task_execution_secrets" {
       Resource = [
         aws_secretsmanager_secret.jwt.arn,
         aws_secretsmanager_secret.database_url.arn,
+        data.aws_secretsmanager_secret.openai.arn,
       ]
     }]
   })

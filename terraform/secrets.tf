@@ -1,4 +1,4 @@
-# Two secrets, filled two different ways on purpose.
+# Three secrets, filled three different ways on purpose.
 #
 # The signing key is generated ephemerally and sent to Secrets Manager through
 # a write-only argument. Terraform uses it during apply but never stores it in
@@ -25,6 +25,15 @@ resource "aws_secretsmanager_secret_version" "jwt" {
   secret_id                = aws_secretsmanager_secret.jwt.id
   secret_string_wo         = ephemeral.random_password.jwt.result
   secret_string_wo_version = var.jwt_secret_version
+}
+
+# The OpenAI key is a third case: created and filled outside Terraform, and only
+# looked up here. It is a real credential that CI would otherwise have to carry
+# on every apply, and a data source puts nothing but the ARN in state. Create it
+# once, before the first apply that includes this:
+#   aws secretsmanager create-secret --name sciterm/openai-api-key --secret-string ...
+data "aws_secretsmanager_secret" "openai" {
+  name = "${local.name}/openai-api-key"
 }
 
 resource "random_password" "db" {

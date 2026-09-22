@@ -83,6 +83,10 @@ resource "aws_ecs_task_definition" "api" {
       # The API is the only task that signs tokens. The worker is deliberately
       # not given this -- see api/auth/config.py.
       { name = "JWT_SECRET", valueFrom = aws_secretsmanager_secret_version.jwt.arn },
+      # Chat routing, entity confirmation, cited answers and /define. The API
+      # only: the worker never calls OpenAI, and api/llm reads the key lazily so
+      # its absence there is not an error.
+      { name = "OPENAI_API_KEY", valueFrom = data.aws_secretsmanager_secret.openai.arn },
     ]
 
     logConfiguration = {
