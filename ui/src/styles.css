@@ -344,6 +344,27 @@ body {
 /* The answer, beneath its citations. */
 .analysis-block { margin-top: 18px; }
 
+/* A phrase naming a recognised entity: underlined in the accent, so it reads
+   as annotated without competing with the citation markers' colour. */
+.answer-entity {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+/* Trails the last word while more of the answer, or its underlines, is coming. */
+.spinner-inline {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-left: 6px;
+  vertical-align: -1px;
+}
+
+/* Entity Matches heads the reply, above whatever is still loading. */
+.message-body > .debug-disclosure:first-child { margin: 0 0 14px; }
+
 /* An inline [n]: the accent colour marks it as clickable without a box that
    would break up the sentence it sits in. */
 .citation-marker {

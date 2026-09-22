@@ -8,23 +8,27 @@ that distinct components get their own `.tsx`.
 The conversation pane. The landing block is held mounted with an exiting class
 so it slides up and fades *before* the answer appears.
 
-`EntityMatchResults` renders the experimental entity candidates after paper
-evidence. It keeps noun-chunk/3-gram, trigram/vector, and canonical-name/mention
+`EntityMatchResults` renders the experimental entity candidates. It keeps noun-chunk/3-gram, trigram/vector, and canonical-name/mention
 paths visibly separate so retrieval quality can be compared. It is wrapped in
-`DebugDisclosure`, so the candidates stay collapsed until asked for. Inside it,
+a `DebugDisclosure` labelled "Entity Matches", so the candidates stay
+collapsed until asked for. Inside it,
 nested disclosures separate "Raw Candidates" from the server's "Filtered
 Candidates", which pool fragments per strategy and name each match's fragment.
 A third, "OpenAI Entities", renders `IntentEntityList`: the candidates OpenAI
 confirmed, each with the query phrase that named it.
 
-A `paper_analysis` reply renders as `AnalysisMessage`, in place of the result
-list. Auto-scroll to the end runs for a new message or a finished search,
-never for a piece of a streaming answer.
+Every reply opens with the **Entity Matches** disclosure (closed), shown as
+soon as the stream's first line arrives, with a spinner beneath it until the
+result does. A `paper_analysis` reply then renders as `AnalysisMessage`, in
+place of the result list. Auto-scroll to the end runs for a new message or a
+finished search, never for a piece of a streaming answer.
 
 ## `AnalysisMessage.tsx`
 
-A **Citations** disclosure (open by default), then the answer streaming in
-below it, above Debug. When the first words arrive the answer is scrolled to the
+A **Citations** disclosure (closed by default), then the answer streaming in
+below it. A small spinner trails the last word until the answer is finished
+and its entities have arrived; each phrase naming one is then underlined in the
+accent (`../entityPhrases.ts`), with the entity's name and type as a tooltip. When the first words arrive the answer is scrolled to the
 top of the chat once, and then left alone to run off the bottom. Scrolling an
 element to the top needs a screen of content under it, so the newest answer is
 floored at the chat's height.

@@ -1,4 +1,5 @@
 import type {
+  AnswerEntity,
   EntityMatchGroup,
   EntityStrategyGroup,
   IntentEntity,
@@ -25,6 +26,10 @@ export interface Message {
   analysis?: PaperAnalysisResult
   /** True from the citations' arrival until the answer is finished or fails. */
   answerPending?: boolean
+  /** The entities the finished answer names, underlined in it. */
+  answerEntities?: AnswerEntity[]
+  /** True from the answer's end until its entities arrive or cannot. */
+  answerEntitiesPending?: boolean
   /** How many papers matched any query term, before the top few were kept. */
   papersConsidered?: number
   /** Experimental entity candidates, kept grouped by discovery path. */

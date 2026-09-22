@@ -103,3 +103,17 @@ def test_filter_entity_matches() -> None:
                 )
         expected = {key: value for key, value in case["expected"].items() if value}
         assert actual == expected, case["name"]
+
+
+def test_filter_entity_matches_max_per_strategy() -> None:
+    text = " ".join(f"w{index}" for index in range(20))
+    group = _group("x", [_match(f"m{index}", 0.9, entity_id=index) for index in range(12)])
+    cases = [
+        {"max_per_strategy": None, "expected": 5},
+        {"max_per_strategy": 10, "expected": 10},
+        {"max_per_strategy": 20, "expected": 12},
+    ]
+    for case in cases:
+        options = {} if case["max_per_strategy"] is None else {"max_per_strategy": case["max_per_strategy"]}
+        (kept,) = filter_entity_matches([group], text, CUTOFFS, **options)
+        assert len(kept.matches) == case["expected"], case

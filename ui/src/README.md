@@ -15,8 +15,12 @@ closed: that is how "go back to where I was" works. `handleSend` reads the
 `/corpus/rag_search` stream, folding each line into the reply with
 `ragAnswer.ts`.
 
-**`ragAnswer.ts`** — pure message updates for that stream: the result, each
-answer piece, the finish, and a connection that dropped part-way.
+**`ragAnswer.ts`** — pure message updates for that stream: the candidates, the
+result, each answer piece, the finish, the answer's entities, and a connection
+that dropped part-way.
+
+**`entityPhrases.ts`** — splits answer text into plain runs and whole-word,
+case-insensitive runs naming an entity, longest phrase first.
 The sciterm logo is a link to `/`: a plain click returns to the chat in-app,
 keeping the conversation; a modified click opens a new tab.
 

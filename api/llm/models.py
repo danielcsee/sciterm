@@ -27,3 +27,14 @@ class IntentResult(BaseModel):
     #: Only `no_match` explains itself.
     reason: Optional[str] = None
     model: str
+
+
+class AnswerEntity(BaseModel):
+    """An entity the model found in a generated answer, with every wording it
+    used there. Each phrase occurs in the answer, so it can be marked."""
+
+    entity_id: int
+    identifier: str
+    entity_type: str
+    name: Optional[str] = None
+    phrases: list[str] = Field(default_factory=list)

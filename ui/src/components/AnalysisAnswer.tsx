@@ -1,10 +1,16 @@
-import type { Citation } from '../api'
+import type { ReactNode } from 'react'
+import type { AnswerEntity, Citation } from '../api'
+import { markPhrases } from '../entityPhrases'
 import CitationMarker from './CitationMarker'
 
 interface Props {
   answer: string
   citations: Citation[]
+  /** Entities the answer names; each phrase naming one is underlined. */
+  entities: AnswerEntity[]
   onOpenCitation: (citation: Citation) => void
+  /** Drawn after the last word, e.g. a spinner while more is coming. */
+  trailing?: ReactNode
 }
 
 /** A piece of the answer: prose, or one citation number. */
@@ -33,8 +39,17 @@ export function splitCitations(answer: string, known: ReadonlySet<number>): Answ
   return parts
 }
 
-/** The generated answer, with each `[n]` a live citation marker. */
-export default function AnalysisAnswer({ answer, citations, onOpenCitation }: Props) {
+/**
+ * The generated answer, with each `[n]` a live citation marker and each
+ * phrase naming a recognised entity underlined.
+ */
+export default function AnalysisAnswer({
+  answer,
+  citations,
+  entities,
+  onOpenCitation,
+  trailing,
+}: Props) {
   const byNumber = new Map(citations.map((citation) => [citation.number, citation]))
   const parts = splitCitations(answer, new Set(byNumber.keys()))
 
@@ -42,7 +57,9 @@ export default function AnalysisAnswer({ answer, citations, onOpenCitation }: Pr
     <p className="rag-text analysis-answer">
       {parts.map((part, index) =>
         part.kind === 'text' ? (
-          <span key={index}>{part.text}</span>
+          <span key={index}>
+            <EntityPhrases text={part.text} entities={entities} />
+          </span>
         ) : (
           <CitationMarker
             key={index}
@@ -51,6 +68,24 @@ export default function AnalysisAnswer({ answer, citations, onOpenCitation }: Pr
           />
         ),
       )}
+      {trailing}
     </p>
+  )
+}
+
+/** One stretch of prose, with the phrases naming entities underlined. */
+function EntityPhrases({ text, entities }: { text: string; entities: AnswerEntity[] }) {
+  return markPhrases(text, entities).map((run, index) =>
+    run.entity ? (
+      <span
+        key={index}
+        className="answer-entity"
+        title={`${run.entity.name ?? run.entity.identifier} · ${run.entity.entity_type}`}
+      >
+        {run.text}
+      </span>
+    ) : (
+      run.text
+    ),
   )
 }

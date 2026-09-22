@@ -10,7 +10,7 @@ separate group so retrieval can be inspected. Identifiers are not searched.
 Trigram scores are harsh on typos, so `rescoring.py` replaces them with
 `1 - levenshtein / longer length` before the top-k cut. `filtering.py` then
 pools each strategy, dedupes, keeps the top five (one per word for shorter
-queries) and applies the per-matcher cutoffs in `cutoffs.toml`, validated by
+queries; `max_per_strategy` raises it for longer text) and applies the per-matcher cutoffs in `cutoffs.toml`, validated by
 `cutoffs.py` at startup.
 
 **Type-ahead.** `suggest.py` merges one candidate per entity by strategy

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from api.pb_client.models import SearchResult
 from api.entity_matching.models import EntityMatchGroup, EntityStrategyGroup
-from api.llm.models import IntentResult
+from api.llm.models import AnswerEntity, IntentResult
 from api.paper_analysis import PaperAnalysisResult
 from api.paper_search import SearchedPaper, SearchMethod, SearchTermSummary
 
@@ -136,8 +136,16 @@ class RagSearchResponse(BaseModel):
 RAG_STREAM_MEDIA_TYPE = "application/x-ndjson"
 
 
+class EntityMatchesEvent(BaseModel):
+    """Always first, before OpenAI is asked anything: the query's candidates."""
+
+    type: Literal["entity_matches"] = "entity_matches"
+    entity_matches: list[EntityMatchGroup] = Field(default_factory=list)
+    filtered_entity_matches: list[EntityStrategyGroup] = Field(default_factory=list)
+
+
 class RagResultEvent(BaseModel):
-    """Always first: everything but the answer, citations included.
+    """Second: everything but the answer, citations included.
 
     For `paper_analysis`, `analysis.answer` is null here; the answer follows
     as `answer_delta` lines and closes with one `answer_done`.
@@ -155,7 +163,7 @@ class AnswerDeltaEvent(BaseModel):
 
 
 class AnswerDoneEvent(BaseModel):
-    """Last, and only after a `paper_analysis` result: how the answer ended.
+    """Only after a `paper_analysis` result: how the answer ended.
 
     `answer` is the whole text, trimmed; it replaces the concatenated deltas.
     """
@@ -163,6 +171,17 @@ class AnswerDoneEvent(BaseModel):
     type: Literal["answer_done"] = "answer_done"
     answer: Optional[str] = None
     model: Optional[str] = None
+    error: Optional[str] = None
+
+
+class AnswerEntitiesEvent(BaseModel):
+    """Last, and only after an answer was written: the entities it names.
+
+    Each entity carries every phrase naming it, as written in `answer`.
+    """
+
+    type: Literal["answer_entities"] = "answer_entities"
+    entities: list[AnswerEntity] = Field(default_factory=list)
     error: Optional[str] = None
 
 

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { Citation, PaperAnalysisResult, SearchedPaper } from '../api'
+import type { AnswerEntity, Citation, PaperAnalysisResult, SearchedPaper } from '../api'
 import AnalysisAnswer from './AnalysisAnswer'
 import CitationList from './CitationList'
 import DebugDisclosure from './DebugDisclosure'
@@ -9,6 +9,10 @@ interface Props {
   papers: SearchedPaper[]
   /** The answer is still being written. */
   pending: boolean
+  /** Entities the answer names, once found. */
+  entities: AnswerEntity[]
+  /** The answer is finished, but its entities are still being found. */
+  entitiesPending: boolean
   /** Why no answer is shown: the message text, once the answer has failed. */
   fallbackText: string
   /** The newest message: only it keeps room below its answer. */
@@ -21,7 +25,9 @@ interface Props {
 const ANSWER_TOP_GAP = 16
 
 /**
- * A `paper_analysis` reply: the citations, then the answer streaming in below.
+ * A `paper_analysis` reply: the citations, folded, then the answer streaming
+ * in below. A spinner trails the answer until its last word and its entity
+ * underlines have both arrived.
  *
  * When the answer's first words arrive, it is scrolled to the top of the chat
  * once, and then left alone: the rest runs off the bottom for the reader to
@@ -32,6 +38,8 @@ export default function AnalysisMessage({
   analysis,
   papers,
   pending,
+  entities,
+  entitiesPending,
   fallbackText,
   isLatest,
   onOpenPaper,
@@ -57,7 +65,7 @@ export default function AnalysisMessage({
   return (
     <>
       {analysis.citations.length > 0 && (
-        <DebugDisclosure label="Citations" defaultOpen>
+        <DebugDisclosure label="Citations">
           <CitationList
             citations={analysis.citations}
             papers={papers}
@@ -78,7 +86,13 @@ export default function AnalysisMessage({
           <AnalysisAnswer
             answer={analysis.answer}
             citations={analysis.citations}
+            entities={entities}
             onOpenCitation={onOpenCitation}
+            trailing={
+              (pending || entitiesPending) && (
+                <span className="spinner spinner-inline" role="status" aria-label="Loading" />
+              )
+            }
           />
         ) : pending ? (
           <span className="rag-pending" role="status">

@@ -90,22 +90,23 @@ def _intent_input(query: str, candidates: Iterable[list[FilteredEntityMatch]]) -
     """The user turn: the query and its candidates, as one JSON document."""
     payload = {
         "query": query,
-        "candidate_entities": [_candidate_payload(matches) for matches in candidates],
+        "candidate_entities": [candidate_payload(matches) for matches in candidates],
     }
     return json.dumps(payload, ensure_ascii=False)
 
 
-def _candidate_payload(matches: list[FilteredEntityMatch]) -> dict[str, object]:
+def candidate_payload(matches: list[FilteredEntityMatch]) -> dict[str, object]:
+    """One candidate as the model sees it, with every text that surfaced it."""
     first = matches[0]
     return {
         "id": first.entity_id,
-        "name": _display_name(first),
+        "name": display_name(first),
         "type": first.entity_type,
         "matched_text": sorted({match.matched_text for match in matches}),
     }
 
 
-def _display_name(match: FilteredEntityMatch) -> Optional[str]:
+def display_name(match: FilteredEntityMatch) -> Optional[str]:
     return match.name or match.matched_text
 
 
@@ -114,6 +115,6 @@ def _intent_entity(match: FilteredEntityMatch, phrase: str) -> IntentEntity:
         entity_id=match.entity_id,
         identifier=match.identifier,
         entity_type=match.entity_type,
-        name=_display_name(match),
+        name=display_name(match),
         phrase=phrase,
     )

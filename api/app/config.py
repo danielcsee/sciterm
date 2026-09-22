@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     #: already kept. Measured: distinct findings in a shared template reach
     #: 0.98, so anything lower rejects real evidence.
     paper_analysis_duplicate_similarity: float = 0.985
+    #: Filtered entity candidates kept per strategy when underlining an answer:
+    #: twice the query's five, since an answer names more entities than a
+    #: question does. OpenAI confirms them, so extras cost tokens, not accuracy.
+    answer_entity_candidates_per_strategy: int = 10
 
     # --- Entity matching experiment ---
     #: Candidate count is applied independently to every extraction/matcher/

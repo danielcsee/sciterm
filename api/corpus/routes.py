@@ -8,12 +8,10 @@ stalling the event loop.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
 from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 
 from api.auth import require_user
 from api.corpus import queries
@@ -28,24 +26,10 @@ from api.corpus.models import (
     CorpusPaperDetail,
     ImportedReferenceList,
     RAG_STREAM_MEDIA_TYPE,
-    AnswerDeltaEvent,
-    AnswerDoneEvent,
-    RagResultEvent,
-    RagSearchResponse,
     ReferenceList,
 )
-from api.app.config import get_settings
-from api.entity_matching import (
-    EntityMatchManager,
-    QueryFragment,
-    extract_query_fragments,
-    filter_entity_matches,
-    get_cutoffs,
-)
-from api.ingestion.embedding import embed_queries
-from api.llm import LlmError, classify_intent, get_llm_client
-from api.paper_analysis import gather_evidence, query_entity_ids, start_analysis, stream_answer
-from api.paper_search import search_papers
+from api.corpus.rag import match_query_entities, rag_events
+from api.entity_matching import extract_query_fragments
 from api.pb_client import PubTatorClient
 from api.db import session_scope
 
@@ -113,9 +97,9 @@ def rag_search(
     when there are none. `paper_analysis` then answers from the papers' best
     paragraphs, citing them. `no_match` returns no papers.
 
-    The response is NDJSON: a `result` line holding everything but the answer,
-    then, for `paper_analysis`, the answer as `answer_delta` lines and a final
-    `answer_done`. The citations can be read while the answer is written.
+    The response is NDJSON, each stage sent as soon as it is ready: see
+    `api.corpus.rag`. The entity candidates are matched before it starts, so
+    a failure there is still an HTTP error.
 
     Registered before `/corpus/{paper_id}`: FastAPI matches routes in order,
     and "rag_search" against an int path parameter is a 422.
@@ -125,137 +109,8 @@ def rag_search(
         raise HTTPException(status_code=400, detail="query must not be blank")
 
     fragments = extract_query_fragments(text)
-    result = _match_entities(text, fragments)
-    _route_intent(result, text)
-    if _wants_papers(result):
-        _search_papers(result, fragments)
-    if _wants_analysis(result):
-        _analyze_papers(result)
-    log.info(
-        "rag_search %r -> tool %s, %s search over %d terms, %d of %d papers",
-        text,
-        result.intent.tool if result.intent else None,
-        result.search_method,
-        len(result.search_terms),
-        len(result.papers),
-        result.papers_considered,
-    )
-    return StreamingResponse(_rag_events(result), media_type=RAG_STREAM_MEDIA_TYPE)
-
-
-def _rag_events(result: RagSearchResponse) -> Iterator[str]:
-    """The result line, then the answer as the model writes it.
-
-    Starlette iterates a sync generator in its threadpool, so the blocking
-    OpenAI stream never stalls the event loop.
-    """
-    yield _ndjson_line(RagResultEvent(result=result))
-    analysis = result.analysis
-    if analysis is None:
-        return
-    pieces = stream_answer(
-        get_llm_client(),
-        result.query,
-        analysis,
-        result.papers,
-        timeout=get_settings().openai_analysis_timeout_seconds,
-    )
-    for piece in pieces:
-        yield _ndjson_line(AnswerDeltaEvent(text=piece))
-    yield _ndjson_line(
-        AnswerDoneEvent(answer=analysis.answer, model=analysis.model, error=analysis.error)
-    )
-
-
-def _ndjson_line(event: BaseModel) -> str:
-    return event.model_dump_json() + "\n"
-
-
-def _match_entities(text: str, fragments: list[QueryFragment]) -> RagSearchResponse:
-    """Raw and filtered entity candidates for the query's fragments."""
-    settings = get_settings()
-    vectors = embed_queries([fragment.text for fragment in fragments])
-    with session_scope() as session:
-        entity_matches = EntityMatchManager(
-            session,
-            top_k=settings.entity_match_top_k,
-            embedding_threshold=settings.entity_match_embedding_threshold,
-            trigram_threshold=settings.entity_match_trigram_threshold,
-        ).search(fragments, vectors)
-    return RagSearchResponse(
-        query=text,
-        entity_matches=entity_matches,
-        filtered_entity_matches=filter_entity_matches(entity_matches, text, get_cutoffs()),
-    )
-
-
-def _route_intent(result: RagSearchResponse, text: str) -> None:
-    """Fill `result.intent`, or `intent_error` — never fail the search itself."""
-    client = get_llm_client()
-    if client is None:
-        result.intent_error = "OpenAI is not configured (OPENAI_API_KEY is unset)"
-        return
-    try:
-        result.intent = classify_intent(client, text, result.filtered_entity_matches)
-    except LlmError as exc:
-        log.warning("intent routing failed for %r: %s", text, exc)
-        result.intent_error = str(exc)
-
-
-def _wants_papers(result: RagSearchResponse) -> bool:
-    """Every tool but `no_match` searches. So does chat when routing could not
-    run: with no confirmed entities, the noun-phrase search still answers."""
-    return result.intent is None or result.intent.tool != "no_match"
-
-
-def _wants_analysis(result: RagSearchResponse) -> bool:
-    """Only an explicit `paper_analysis` route, and only with papers to read."""
-    return (
-        result.intent is not None
-        and result.intent.tool == "paper_analysis"
-        and result.search_method is not None
-        and bool(result.papers)
-    )
-
-
-def _search_papers(result: RagSearchResponse, fragments: list[QueryFragment]) -> None:
-    """Fill the paper fields of `result`. Its own session: routing may have
-    held the request for seconds, and no connection should wait on OpenAI."""
-    settings = get_settings()
-    entities = result.intent.entities if result.intent else []
-    with session_scope() as session:
-        found = search_papers(
-            session,
-            entities,
-            fragments,
-            top_k=settings.paper_search_top_k,
-            chunks_per_paper=settings.paper_search_chunks_per_paper,
-            max_term_fraction=settings.paper_search_max_term_fraction,
-        )
-    result.papers = found.papers
-    result.search_method = found.method
-    result.search_terms = found.terms
-    result.papers_considered = found.papers_considered
-
-
-def _analyze_papers(result: RagSearchResponse) -> None:
-    """Fill `result.analysis` with its citations; `_rag_events` writes the
-    answer. The paragraphs are read in a session closed before OpenAI is
-    called, for the same reason as `_search_papers`."""
-    settings = get_settings()
-    assert result.search_method is not None  # guaranteed by _wants_analysis
-    with session_scope() as session:
-        evidence = gather_evidence(
-            session,
-            result.search_method,
-            result.search_terms,
-            result.papers,
-            dense_per_paper=settings.paper_analysis_dense_paragraphs,
-            duplicate_similarity=settings.paper_analysis_duplicate_similarity,
-        )
-    result.analysis = start_analysis(
-        get_llm_client(), evidence, query_entity_ids(result.search_terms)
-    )
+    result = match_query_entities(text, fragments)
+    return StreamingResponse(rag_events(result, fragments), media_type=RAG_STREAM_MEDIA_TYPE)
 
 
 @protected_router.get(
