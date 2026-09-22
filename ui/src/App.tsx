@@ -12,7 +12,12 @@ import CorpusView from './components/CorpusView'
 import PaperTabs from './components/PaperTabs'
 import PaperView from './components/PaperView'
 import PaperExplorer, { type ReferenceTarget } from './components/PaperExplorer'
-import { DefineTermButton, useDefinition } from './define'
+import {
+  clearDefinitionUnderline,
+  DefineTermButton,
+  underlineDefinitionRange,
+  useDefinition,
+} from './define'
 import { GroupsView } from './groups'
 import {
   CHAT,
@@ -179,9 +184,15 @@ export default function App() {
    * Define a highlighted phrase in the sidebar. The definition shows under the
    * search box, so a references panel covering it is closed first.
    */
-  function defineHighlight(phrase: string, surroundingContext: string | null) {
+  function defineHighlight(phrase: string, surroundingContext: string | null, range: Range) {
     setReferencesFor(null)
+    underlineDefinitionRange(range)
     definition.request(phrase, surroundingContext)
+  }
+
+  function clearDefinition() {
+    clearDefinitionUnderline()
+    definition.clear()
   }
 
   function closePaper(paperId: number) {
@@ -367,12 +378,14 @@ export default function App() {
           onCloseReferences={() => setReferencesFor(null)}
           onOpenPaper={(paperId, title) => openPaper(paperId, truncateTitle(title, 200))}
           definition={definition.definition}
-          onClearDefinition={definition.clear}
+          onClearDefinition={clearDefinition}
         />
       </main>
       {/* Spends OpenAI tokens, so it is gated like the chat composer. */}
       <DefineTermButton
-        onDefine={(phrase, context) => requireAuth(() => defineHighlight(phrase, context))}
+        onDefine={(phrase, context, range) =>
+          requireAuth(() => defineHighlight(phrase, context, range))
+        }
       />
     </div>
   )

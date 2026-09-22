@@ -1959,6 +1959,13 @@ body {
 }
 
 /* ---------- define this term ---------- */
+::highlight(definition-request) {
+  text-decoration-line: underline;
+  text-decoration-color: var(--highlight-edge);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+}
+
 /* Fixed, not a child of the text: it sits in the gutter beside the scrolling
    column, placed from the highlight's own rect (define/selection.ts). */
 .define-term-button {

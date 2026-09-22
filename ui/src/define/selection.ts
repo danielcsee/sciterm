@@ -15,6 +15,8 @@ export const MIN_GUTTER_WIDTH = 64
 export const DEFINABLE_ATTR = 'data-definable'
 /** Marks the text column inside it; the gutter is what lies to its right. */
 export const DEFINABLE_COLUMN_ATTR = 'data-definable-column'
+/** CSS Custom Highlight name for the phrase whose definition is open. */
+export const DEFINITION_UNDERLINE = 'definition-request'
 
 const BLOCK_SELECTOR = 'p, li, h1, h2, h3, h4, h5, h6, blockquote, dd, td, th, figcaption'
 /** Blank lines inside one element (the chat answer is one pre-wrap <p>). */
@@ -23,6 +25,8 @@ const PARAGRAPH_BREAK = /\n\s*\n/
 export interface Highlight {
   phrase: string
   surroundingContext: string | null
+  /** A stable copy of the selected text range, retained after selection changes. */
+  range: Range
   /** Viewport position for the button: the first highlighted line, in the gutter. */
   top: number
   left: number
@@ -48,7 +52,18 @@ export function readHighlight(selection: Selection | null): Highlight | null {
 
   const surroundingContext =
     countWords(phrase) > MAX_CONTEXT_WORDS ? null : paragraphAround(range, container)
-  return { phrase, surroundingContext, ...placement }
+  return { phrase, surroundingContext, range: range.cloneRange(), ...placement }
+}
+
+/** Keep the requested phrase visibly tied to the definition shown in the sidebar. */
+export function underlineDefinitionRange(range: Range): void {
+  if (!('highlights' in CSS) || typeof globalThis.Highlight === 'undefined') return
+  CSS.highlights.set(DEFINITION_UNDERLINE, new globalThis.Highlight(range))
+}
+
+export function clearDefinitionUnderline(): void {
+  if (!('highlights' in CSS)) return
+  CSS.highlights.delete(DEFINITION_UNDERLINE)
 }
 
 /**
