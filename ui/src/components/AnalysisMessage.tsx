@@ -19,6 +19,7 @@ interface Props {
   isLatest: boolean
   onOpenPaper: (paperId: number, title: string | null) => void
   onOpenCitation: (citation: Citation) => void
+  onSmartGroupCreated: () => void
 }
 
 /** Room kept above the answer when it is scrolled to the top. */
@@ -44,6 +45,7 @@ export default function AnalysisMessage({
   isLatest,
   onOpenPaper,
   onOpenCitation,
+  onSmartGroupCreated,
 }: Props) {
   const answerRef = useRef<HTMLDivElement>(null)
   // Only an answer that streams in while this is mounted is scrolled to;
@@ -88,6 +90,7 @@ export default function AnalysisMessage({
             citations={analysis.citations}
             entities={entities}
             onOpenCitation={onOpenCitation}
+            onSmartGroupCreated={onSmartGroupCreated}
             trailing={
               (pending || entitiesPending) && (
                 <span className="spinner spinner-inline" role="status" aria-label="Loading" />

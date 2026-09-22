@@ -29,8 +29,10 @@ A **Citations** disclosure (closed by default), then the answer streaming in
 below it. A small spinner trails the last word until the answer is finished
 and its entities have arrived; they are then listed as pills after the answer
 (`AnswerEntityPills.tsx`, the paper view's pill shape, identifier and type as a
-tooltip). Hovering or focusing a pill underlines, in the accent, each phrase
-naming that entity (`../entityPhrases.ts`); nothing is underlined otherwise.
+tooltip). The pills can be selected, and any selection reveals Create Smart
+Group in the right gutter; it opens the shared save modal. Hovering or focusing
+a pill underlines, in the accent, each phrase naming that entity
+(`../entityPhrases.ts`); nothing is underlined otherwise.
 Only the hovered entity's phrases are matched, so a phrase two entities share
 underlines for either pill. When the first words arrive the answer is scrolled to the
 top of the chat once, and then left alone to run off the bottom. Scrolling an

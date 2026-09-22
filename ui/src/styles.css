@@ -120,6 +120,17 @@ body {
   background: var(--accent-soft);
 }
 
+.tab-flash { animation: tab-flash 1.8s ease-out; }
+
+@keyframes tab-flash {
+  0%,
+  45% {
+    color: #fff;
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+}
+
 /* ---------- paper tabs (the scrolling half of the bar) ---------- */
 .paper-tabs {
   position: relative;
@@ -344,9 +355,10 @@ body {
 /* The answer, beneath its citations. */
 .analysis-block { margin-top: 18px; }
 
-/* The entities an answer names, as pills after it (AnswerEntityPills.tsx).
-   They share the paper view's pill shape but open nothing: hovering one only
-   underlines its phrases above, so the cursor stays plain. */
+/* The entities an answer names, as selectable pills after it
+   (AnswerEntityPills.tsx). */
+.answer-entity-actions { position: relative; }
+
 .answer-entity-pills {
   list-style: none;
   margin: 10px 0 0;
@@ -356,7 +368,37 @@ body {
   gap: 6px;
 }
 
-.answer-entity-pill { display: inline-block; cursor: default; }
+.answer-entity-pill { display: inline-block; }
+
+/* The message column is 720px wide. On roomy screens the action occupies the
+   empty gutter beside it; in narrower panes it returns to the row below. */
+.answer-create-group {
+  position: absolute;
+  top: 10px;
+  left: calc(100% + 16px);
+  min-height: 31px;
+}
+
+@media (max-width: 1450px) {
+  .answer-entity-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px 12px;
+  }
+
+  .answer-entity-pills { flex: 1 1 360px; }
+
+  .answer-create-group {
+    position: static;
+    margin-top: 10px;
+    padding-block: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-flash { animation-duration: 0.01s; }
+}
 
 /* A phrase naming the hovered pill's entity: underlined in the accent, so it
    reads as annotated without competing with the citation markers' colour. */

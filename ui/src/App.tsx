@@ -57,6 +57,8 @@ export default function App() {
   // background, so the reader gets feedback for a tab they are not looking at.
   const [flashing, setFlashing] = useState<ReadonlySet<number>>(new Set())
   const flashTimers = useRef<Map<number, number>>(new Map())
+  const [groupsFlashing, setGroupsFlashing] = useState(false)
+  const groupsFlashTimer = useRef<number | null>(null)
 
   // Papers that 404ed this session. Their tab stays so the reader sees why,
   // but it must not come back after a reload.
@@ -80,7 +82,17 @@ export default function App() {
     return () => {
       timers.forEach((timer) => window.clearTimeout(timer))
       timers.clear()
+      if (groupsFlashTimer.current !== null) window.clearTimeout(groupsFlashTimer.current)
     }
+  }, [])
+
+  const flashGroupsTab = useCallback(() => {
+    if (groupsFlashTimer.current !== null) window.clearTimeout(groupsFlashTimer.current)
+    setGroupsFlashing(true)
+    groupsFlashTimer.current = window.setTimeout(() => {
+      groupsFlashTimer.current = null
+      setGroupsFlashing(false)
+    }, 1800)
   }, [])
 
   const flashTab = useCallback((paperId: number) => {
@@ -278,7 +290,9 @@ export default function App() {
           </button>
           <button
             type="button"
-            className={`tab${view.kind === 'groups' ? ' tab-active' : ''}`}
+            className={`tab${view.kind === 'groups' ? ' tab-active' : ''}${
+              groupsFlashing ? ' tab-flash' : ''
+            }`}
             aria-current={view.kind === 'groups' ? 'page' : undefined}
             onClick={() => navigate(GROUPS)}
           >
@@ -345,6 +359,7 @@ export default function App() {
             onOpenCitation={(citation, entityIds, title) =>
               openCitation(citation, entityIds, truncateTitle(title, 200))
             }
+            onSmartGroupCreated={flashGroupsTab}
           />
         )}
         <PaperExplorer
