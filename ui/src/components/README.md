@@ -39,6 +39,10 @@ top of the chat once, and then left alone to run off the bottom. Scrolling an
 element to the top needs a screen of content under it, so the newest answer is
 floored at the chat's height.
 
+`ChatWindow` also mounts `../chats/SavedChatControls` above the scroller. It
+loads an owner-scoped snapshot or saves/updates the completed in-memory
+conversation; pending responses cannot be saved.
+
 ## `AnalysisAnswer.tsx`, `CitationList.tsx`, `CitationMarker.tsx`
 
 The answer's `[n]` become `CitationMarker`s; a number the response did not

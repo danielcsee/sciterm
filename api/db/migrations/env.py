@@ -12,6 +12,7 @@ from api.app.config import get_settings
 from api.db.base import Base, normalise_url
 from api.auth import models as auth_models  # noqa: F401  -- ditto, for users/sessions/codes
 from api.groups import models as group_models  # noqa: F401  -- ditto, for entity groups
+from api.chats import models as chat_models  # noqa: F401  -- ditto, for saved chats
 from api.db import models  # noqa: F401  -- imported for its side effect on Base.metadata
 
 config = context.config

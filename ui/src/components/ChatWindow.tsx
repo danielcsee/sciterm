@@ -7,6 +7,8 @@ import AnalysisMessage from './AnalysisMessage'
 import EntityMatchResults from './EntityMatchResults'
 import DebugDisclosure from './DebugDisclosure'
 import IntentEntityList from './IntentEntityList'
+import SavedChatControls from '../chats/SavedChatControls'
+import type { SavedChatSummary } from '../chats/api'
 
 const EXAMPLES = [
   'What is known about BRCA1 and DNA repair?',
@@ -24,6 +26,13 @@ interface Props {
   /** Open a cited paper at the paragraph, with `entityIds` highlighted. */
   onOpenCitation: (citation: Citation, entityIds: number[], title: string | null) => void
   onSmartGroupCreated: () => void
+  savedChats: SavedChatSummary[]
+  activeChatId: number | null
+  chatSaveBusy: boolean
+  chatSaveError: string | null
+  canSaveChat: boolean
+  onLoadChat: (chatId: number) => void
+  onSaveChat: () => void
 }
 
 export default function ChatWindow({
@@ -32,6 +41,13 @@ export default function ChatWindow({
   onOpenPaper,
   onOpenCitation,
   onSmartGroupCreated,
+  savedChats,
+  activeChatId,
+  chatSaveBusy,
+  chatSaveError,
+  canSaveChat,
+  onLoadChat,
+  onSaveChat,
 }: Props) {
   // Asking a question runs retrieval on the server, so the composer is a
   // gate. Locked it stays readable and clickable — clicking is what opens the
@@ -87,6 +103,15 @@ export default function ChatWindow({
 
   return (
     <section className="chat" aria-label="Chat">
+      <SavedChatControls
+        chats={savedChats}
+        activeChatId={activeChatId}
+        canSave={canSaveChat}
+        busy={chatSaveBusy}
+        error={chatSaveError}
+        onLoad={onLoadChat}
+        onSave={onSaveChat}
+      />
       <div className="chat-scroll" data-definable>
         {landingVisible && (
           <div className={`landing${landingLeaving ? ' landing-exit' : ''}`}>
